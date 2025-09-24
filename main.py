@@ -27,7 +27,6 @@ def parse_arguments():
 Examples:
   python main.py                    # Normal operation
   python main.py --dry-run          # Test mode (no orders sent)
-  python main.py --config my.json   # Use custom config file
   python main.py --readme           # Display README documentation
   python main.py --cleanup 1w       # Clean orders older than 1 week
   python main.py --cleanup 2023-12-01  # Clean orders before specific date
@@ -38,12 +37,6 @@ Examples:
         "--dry-run",
         action="store_true",
         help="Run in test mode - no actual orders will be sent",
-    )
-
-    parser.add_argument(
-        "--config",
-        type=str,
-        help="Path to custom configuration file (default: config.json)",
     )
 
     parser.add_argument(
@@ -277,7 +270,7 @@ def main():
             sys.exit(1)
 
         # Initialize and run the main controller
-        controller = MainController(dry_run=args.dry_run, config_file=args.config)
+        controller = MainController(dry_run=args.dry_run)
 
         # Start the application with curses wrapper
         import curses

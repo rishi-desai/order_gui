@@ -1,12 +1,52 @@
 # OSR Order GUI
 
-Terminal-based GUI for creating and managing OSR orders.
+Terminal-based GUI for creating and managing OSR orders. Please read through the README for setup, usage instructions, and how the application works.
 
 ## Quick Start
 
+### Step 1: Setup Application
+
 ```bash
-# Production (single .pyz file) 
-./order_gui.pyz                 # Run anywhere
+# Ensure you are using Python 3.6.8+
+
+# Clone the repository
+git clone https://github.com/rishi-desai/order_gui.git
+
+# Change to the project directory
+cd order_gui
+```
+
+You should now be able to see all the files in the `order_gui` directory. See [Directory Structure](#directory-structure) for details on what each folder / files does.
+
+### Step 2: Build Application
+
+This application is distributed as a single `.pyz` file using Python's zipapp module. Look for `order_gui.pyz` in the directory. If you do not see it, or want to rebuild it, run:
+
+```bash
+python3 build.py
+# or
+./build.py
+
+# If you want to clean up temporary files
+python3 cleanup.py
+# or
+./cleanup.py
+```
+
+That should create `order_gui.pyz` in the current directory. You can then delete the source files if you want to only keep the `.pyz` file or keep the source files if you want to implement any new custom features.
+
+### Step 3: Run Application
+
+To run the application on either a test or live server, just copy the `order_gui.pyz` file to the target server and run:
+
+```bash
+# Enable permissions if needed
+chmod +x order_gui.pyz
+
+# Run the application
+./order_gui.pyz                 # Open GUI
+
+# Command line options
 ./order_gui.pyz --help          # Show help
 ./order_gui.pyz --readme        # Show README
 ./order_gui.pyz --version       # Show version
@@ -14,12 +54,21 @@ Terminal-based GUI for creating and managing OSR orders.
 ./order_gui.pyz --cleanup 1w    # Clean orders older than 1 week
 ```
 
+### Step 4: First Run Configuration
+
+When you first run the application, it will take you through a initial setup to configure some necessary settings depending on your environment / project. This will create two files in the current directory:
+- `order_gui_config.json` - Application settings
+- `order_history.json` - Order tracking data
+
+Then you'll be able to create, save, and send any order type supported by the application to the OSR system.
+
+And that's it! I tried to make the application as user-friendly as possible, but if you run into any issues, please check the [Common Issues](#common-issues) section below. And if you want reach out for support, questions, feature requests, etc., please see the [Support](#support) section.
+
 ## Command Line Options
 
 | Option                     | Description                              |
 |----------------------------|------------------------------------------|
 | `--dry-run`                | Test mode - no actual orders sent to OSR |
-| `--config FILE`            | Use custom configuration file            |
 | `--test-imports`           | Test module imports and exit             |
 | `--cleanup <timeframe>`    | Remove order history                     |
 | `--readme`                 | Show README                              |
@@ -32,43 +81,7 @@ Terminal-based GUI for creating and managing OSR orders.
 - **Management**: History tracking, cancellation, status monitoring  
 - **Integration**: Oracle database lookup, CORBA communication
 - **Safety**: Dry-run mode, XML validation
-- **Distribution**: Single-file zipapp for deployment
 - **Test Server Support**: Sandbox command generation for simulator interaction
-
-### Test Server Features
-
-When running on test servers, the application provides additional functionality:
-
-- **Server Type Configuration**: Select between Live and Test server modes
-- **Sandbox Command Generation**: Automatically generate simulator commands for carrier insertion
-- **Clipboard Integration**: Copy commands to clipboard for easy pasting
-- **Order History Integration**: Generate sandbox commands for previously sent orders
-
-#### Sandbox Commands
-
-The application generates commands in the format:
-```bash
-simosr1 --insert-carrier <element> <carrier> [position]
-simosr1 --show-carriers <element>
-simosr1 --remove-carrier <element> <carrier>
-```
-
-**Element Selection Features:**
-- Choose from common workflow elements (input/output stations, shuttles, lifts)
-- Enter custom workflow elements
-- Save frequently used custom elements for future use
-- Default element configuration
-
-**Common Elements:**
-- `workflow.input.station.01/02` - Input stations
-- `workflow.output.station.01/02` - Output stations  
-- `workflow.shuttle.aisle.01/02` - Shuttle aisles
-- `workflow.lift.01/02` - Lift systems
-
-These commands can be executed in the sandbox shell as:
-- `ssh sandbox@host` - SSH into sandbox user
-- `su - sandbox` - Switch to sandbox user (from osr user)  
-- `sudo -u sandbox bash -lic 'command'` - Execute as sandbox user
 
 ## Requirements
 
@@ -76,21 +89,6 @@ These commands can be executed in the sandbox shell as:
 - Libraries: `curses`, `cx_Oracle`, CORBA libraries
 
 ## Navigation
-
-- **Arrow Keys**: Navigate menus and forms
-- **Enter**: Select/confirm 
-- **Escape/q**: Back/quit
-- **Tab**: Next field in forms
-
-## Build Tools
-
-```bash
-# Only when working with the physical files not the zipapp distribution
-python main.py --help          # Show help
-python main.py --test-imports  # Test imports and exit
-python build.py                # Create single-file .pyz distribution
-python cleanup.py              # Remove temporary files
-```
 
 ## Directory Structure
 
@@ -130,20 +128,14 @@ order_gui/
     └── exceptions.py       # Custom exception classes
 ```
 
-## Configuration
-
-First run creates:
-- `order_gui_config.json` - Application settings
-- `order_history.json` - Order tracking data
-
 ## Common Issues
 
-| Problem                    | Solution                                   |
-|----------------------------|--------------------------------------------|
-| Import errors              | Run from correct directory with `main.py`  |
-| Database connection failed | Verify cx_Oracle installation and access   |
-| ORB connection failed      | Check CORBA libraries and OSR connectivity |
-| Permission denied          | Ensure write permissions in app directory  |
+| Problem                    | Solution                                        |
+|----------------------------|-------------------------------------------------|
+| Import errors              | Ensure `./order_gui.pyz --test-imports` passes  |
+| Database connection failed | Verify `cx_Oracle` installation and access      |
+| ORB connection failed      | Check `CORBA` libraries and OSR connectivity    |
+| Permission denied          | Ensure correct permissions for `order_gui.pyz`  |
 
 ## Support
 

@@ -34,9 +34,9 @@ from .sandbox_controller import SandboxController
 class MainController:
     """Main application controller."""
 
-    def __init__(self, dry_run: bool = False, config_file: str = None):
+    def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run
-        self.config_manager = Config(config_file) if config_file else Config()
+        self.config_manager = Config()
         self.order_controller = OrderController(dry_run)
         self.history_controller = HistoryController()
         self.config_controller = ConfigController()
