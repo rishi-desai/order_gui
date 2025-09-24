@@ -3,7 +3,7 @@ Menu component for navigation and selection.
 """
 
 import curses
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 
 from .utils import (
     get_screen_size,
@@ -13,6 +13,161 @@ from .utils import (
     show_status,
 )
 from config.constants import Colors, Symbols
+
+
+def display_sectioned_menu(
+    stdscr,
+    sections: Dict[str, List[str]],
+    title: str = "Menu",
+    status_info: str = "",
+) -> Optional[int]:
+    """
+    Display a menu with sections for better organization.
+
+    Args:
+        stdscr: curses screen object
+        sections: Dict with section names as keys and option lists as values
+        title: Menu title
+        status_info: Additional status information to display
+
+    Returns:
+        Index of selected option (global index across all sections) or None
+    """
+    curses.curs_set(0)
+    current_row = 0
+
+    # Flatten options and create section mapping
+    all_options = []
+    section_starts = {}
+    current_index = 0
+
+    for section_name, options in sections.items():
+        section_starts[section_name] = current_index
+        all_options.extend(options)
+        current_index += len(options)
+
+    total_options = len(all_options)
+    height, width = get_screen_size(stdscr)
+
+    while True:
+        stdscr.clear()
+
+        # Calculate layout
+        box_width = min(width - 4, max(70, max(len(opt) for opt in all_options) + 15))
+        sections_height = sum(
+            len(opts) + 2 for opts in sections.values()
+        )  # +2 for header and spacing
+        box_height = min(height - 4, sections_height + 6)
+        box_x = (width - box_width) // 2
+        box_y = (height - box_height) // 2
+
+        # Draw main container
+        draw_border(stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER)
+
+        # Display status info in header area
+        if status_info:
+            status_y = box_y + 1
+            status_text = center_string(status_info, box_width - 4)
+            try:
+                stdscr.addstr(
+                    status_y, box_x + 2, status_text, curses.color_pair(Colors.INFO)
+                )
+            except curses.error:
+                pass
+
+        # Draw sections
+        current_y = box_y + 3 + (1 if status_info else 0)
+        option_index = 0
+
+        for section_name, options in sections.items():
+            # Section header
+            if current_y >= box_y + box_height - 2:
+                break
+
+            section_header = f"╭─ {section_name} "
+            section_header += "─" * max(0, box_width - len(section_header) - 6) + "╮"
+
+            try:
+                stdscr.addstr(
+                    current_y,
+                    box_x + 2,
+                    section_header,
+                    curses.color_pair(Colors.SECTION_HEADER) | curses.A_BOLD,
+                )
+            except curses.error:
+                pass
+            current_y += 1
+
+            # Section options
+            for i, option in enumerate(options):
+                if current_y >= box_y + box_height - 2:
+                    break
+
+                # Prepare option text with numbering
+                option_num = option_index + 1
+                if option_index == current_row:
+                    display_text = f"  {Symbols.ARROW_RIGHT} {option_num}. {option}"
+                    try:
+                        stdscr.addstr(
+                            current_y,
+                            box_x + 2,
+                            display_text,
+                            curses.color_pair(Colors.SELECTED) | curses.A_BOLD,
+                        )
+                    except curses.error:
+                        pass
+                else:
+                    display_text = f"    {option_num}. {option}"
+                    try:
+                        stdscr.addstr(
+                            current_y,
+                            box_x + 2,
+                            display_text,
+                            curses.color_pair(Colors.TEXT),
+                        )
+                    except curses.error:
+                        pass
+
+                current_y += 1
+                option_index += 1
+
+            # Add spacing after section
+            current_y += 1
+
+        # Instructions
+        instructions_y = box_y + box_height - 2
+        instructions_text = center_string(
+            "↑↓ Navigate • 1-9 Quick select • Enter to choose • Q to quit",
+            box_width - 4,
+        )
+        try:
+            stdscr.addstr(
+                instructions_y,
+                box_x + 2,
+                instructions_text,
+                curses.color_pair(Colors.INFO),
+            )
+        except curses.error:
+            pass
+
+        stdscr.refresh()
+        key = stdscr.getch()
+
+        # Navigation
+        if key in (curses.KEY_UP, ord("k")) and current_row > 0:
+            current_row -= 1
+        elif key in (curses.KEY_DOWN, ord("j")) and current_row < total_options - 1:
+            current_row += 1
+        elif key in (curses.KEY_ENTER, 10, 13):
+            return current_row
+        elif key >= ord("1") and key <= ord("9"):
+            num = key - ord("1")
+            if num < total_options:
+                return num
+        elif key in (ord("q"), ord("Q")):
+            return None
+
+    return None
 
 
 def display_menu(

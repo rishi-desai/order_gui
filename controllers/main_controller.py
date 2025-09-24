@@ -13,7 +13,7 @@ from models.order_sender import (
     get_order_type_from_xml,
 )
 from models.history import History
-from config.constants import ORDER_TYPES, OrderMode, SERVER_TYPES, ServerType
+from config.constants import ORDER_TYPES, OrderMode, SERVER_TYPES, ServerType, Symbols
 from config.defaults import FIELD_ORDER
 from ui.utils import (
     setup_colors,
@@ -22,7 +22,7 @@ from ui.utils import (
     center_string,
     draw_border,
 )
-from ui.menu import display_menu
+from ui.menu import display_menu, display_sectioned_menu
 from ui.dialog import display_dialog, prompt_input
 from ui.form import edit_form
 from controllers.order_controller import OrderController
@@ -123,12 +123,6 @@ class MainController:
 
     def _display_main_menu(self, stdscr, config: Dict[str, Any]) -> None:
         """Display the main menu for mode selection."""
-        modes = ORDER_TYPES + [
-            "View Order History",
-            "Cancel Orders",
-            "Configure OSR ID",
-            "Configure Server Type",
-        ]
 
         while True:
             # Get current OSR ID and server type for display
@@ -136,21 +130,40 @@ class MainController:
             osrid_display = (
                 f"OSR: {current_osrid}" if current_osrid else "OSR: Not configured"
             )
-
             server_type = config.get("server_type", ServerType.LIVE)
             server_display = f"Server: {server_type}"
+            status_info = f"{osrid_display} • {server_display}"
 
-            selected_idx = display_menu(
+            sections = {
+                f"Order Processing": ORDER_TYPES,
+                f"Order Management": [
+                    "View Order History",
+                    "Cancel Orders",
+                ],
+                f"Configuration": [
+                    "Configure OSR ID",
+                    "Configure Server Type",
+                ],
+            }
+
+            # Create flattened list to match indices
+            all_options = []
+            for section_options in sections.values():
+                all_options.extend(section_options)
+
+            selected_idx = display_sectioned_menu(
                 stdscr,
-                options=modes,
-                title=f"Select a processing mode ({osrid_display} | {server_display})",
+                sections=sections,
+                title="OSR Order GUI - Main Menu",
+                status_info=status_info,
             )
 
             if selected_idx is None:
                 break  # Exit the menu
 
-            selected_mode = modes[selected_idx]
+            selected_mode = all_options[selected_idx]
 
+            # Handle menu selections
             if selected_mode == "View Order History":
                 self.history_controller.view_order_history_menu(stdscr, config)
                 continue
@@ -166,8 +179,9 @@ class MainController:
                 self._configure_server_type(stdscr, config)
                 continue
 
-            # Handle order creation
-            self._handle_order_creation(stdscr, config, selected_mode)
+            # Handle order creation (if it's one of the ORDER_TYPES)
+            if selected_mode in ORDER_TYPES:
+                self._handle_order_creation(stdscr, config, selected_mode)
 
     def _configure_server_type(self, stdscr, config: Dict[str, Any]) -> None:
         """Configure server type setting."""

@@ -58,6 +58,7 @@ class Colors:
     INFO = 7
     BORDER = 8
     INPUT_BG = 9
+    SECTION_HEADER = 10
 
 
 class Symbols:
@@ -70,36 +71,29 @@ class Symbols:
     ARROW_DOWN = "v"
 
     # Status indicators
-    CHECK = "+"
-    CROSS = "-"
-    SUCCESS = "OK"
-    ERROR = "ERR"
-    WARNING = "!"
-    INFO = "i"
+    CHECK = "✓"
+    CROSS = "✗"
+    SUCCESS = "✓"
+    ERROR = "✗"
+    WARNING = "⚠"
+    INFO = "ⓘ"
+    TIME = "⧖"
+    INFO = "●"
 
     # UI elements
-    BULLET = "*"
-    STAR = "*"
-    CONFIRM = "?"
+    BULLET = "•"
+    CONFIRM = "✓"
     KEY = ">"
-    EDIT = "="
-    MENU = "="
-    SETTINGS = "@"
+    EDIT = "✎"
+    SETTINGS = "⛭"
 
     # Selection boxes
-    BOX_EMPTY = "[ ]"
-    BOX_CHECKED = "[*]"
+    BOX_EMPTY = "▢"
+    BOX_CHECKED = "▣"
 
-    # Order tracking
-    CLOCK = "T"
+    # Navigation actions
     BACK = "<"
-    REFRESH = "R"
-    ID = "#"
-    TYPE = "T"
-    OSR = "O"
-    STATUS = "S"
-    TIME = "@"
-    QUESTION = "?"
+    REFRESH = "↻"
 
     # Box drawing
     HORIZONTAL_LINE = "─"

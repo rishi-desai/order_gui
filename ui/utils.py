@@ -21,6 +21,7 @@ def setup_colors() -> None:
         curses.init_pair(Colors.INFO, curses.COLOR_BLUE, curses.COLOR_BLACK)
         curses.init_pair(Colors.BORDER, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
         curses.init_pair(Colors.INPUT_BG, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(Colors.SECTION_HEADER, curses.COLOR_YELLOW, curses.COLOR_BLACK)
 
 
 def write_text(stdscr, y: int, x: int, text: str, attr: int = 0) -> None:

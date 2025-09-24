@@ -106,28 +106,28 @@ class HistoryController:
         updated = order.get("updated", "")
 
         status_symbol = {
-            "sent": f"{Symbols.CLOCK} SENT",
+            "sent": f"{Symbols.TIME} SENT",
             "cancelled": f"{Symbols.ERROR} CANCELLED",
             "cancelled_dry_run": f"{Symbols.WARNING} CANCELLED (DRY RUN)",
             "completed": f"{Symbols.SUCCESS} COMPLETED",
             "failed": f"{Symbols.ERROR} FAILED",
-            "processing": f"{Symbols.CLOCK} PROCESSING",
-            "pending": f"{Symbols.CLOCK} PENDING",
-        }.get(status, f"{Symbols.QUESTION} {status.upper()}")
+            "processing": f"{Symbols.TIME} PROCESSING",
+            "pending": f"{Symbols.TIME} PENDING",
+        }.get(status, f"{Symbols.INFO} {status.upper()}")
 
         # Prepare the order details display
         details_lines = [
-            f"{Symbols.ID} Order ID: {order_id}",
-            f"{Symbols.TYPE} Type: {order_type}",
-            f"{Symbols.OSR} OSR ID: {osrid}",
-            f"{Symbols.STATUS} Status: {status_symbol}",
+            f"Order ID: {order_id}",
+            f"Type: {order_type}",
+            f"OSR ID: {osrid}",
+            f"Status: {status_symbol}",
             "",
-            f"{Symbols.TIME} Created: {created}",
+            f"Created: {created}",
         ]
 
         # Only show updated time if it exists and is different from created
         if updated and updated != created:
-            details_lines.append(f"{Symbols.TIME} Updated: {updated}")
+            details_lines.append(f"Updated: {updated}")
 
         # Add action options
         details_lines.extend(

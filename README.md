@@ -23,14 +23,14 @@ You should now be able to see all the files in the `order_gui` directory. See [D
 This application is distributed as a single `.pyz` file using Python's zipapp module. Look for `order_gui.pyz` in the directory. If you do not see it, or want to rebuild it, run:
 
 ```bash
-python3 main.py --build
+python3 __main__.py --build
 # or
-./main.py --build
+./__main__.py --build
 
 # If you want to clean up temporary files
-python3 main.py --clean-files
+python3 __main__.py --clean-files
 # or
-./main.py --clean-files
+./__main__.py --clean-files
 ```
 
 That should create `order_gui.pyz` in the current directory. You can then delete the source files if you want to only keep the `.pyz` file or keep the source files if you want to implement any new custom features.
@@ -97,8 +97,8 @@ And that's it! I tried to make the application as user-friendly as possible, but
 
 ```
 order_gui/
-├── main.py                     # Application entry point
-├── __main__.py                 # Zipapp entry point
+├── __main__.py                     # Application entry point
+├── ____main____.py                 # Zipapp entry point
 ├── config/                     # Configuration and constants
 │   ├── __init__.py             # Package initialization
 │   ├── constants.py            # Order types, colors, symbols, file paths
@@ -121,7 +121,7 @@ order_gui/
 │   ├── __init__.py             # Package initialization
 │   ├── config_controller.py    # Settings management
 │   ├── history_controller.py   # Order history and cancellation
-│   ├── main_controller.py      # Main application flow
+│   ├── __main___controller.py      # __main__ application flow
 │   ├── order_controller.py     # Order creation workflow
 │   └── sandbox_controller.py   # Test server sandbox operations
 └── utils/                      # Utilities and exceptions

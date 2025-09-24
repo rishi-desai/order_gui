@@ -38,7 +38,7 @@ class ConfigController:
             dialog_x,
             dialog_height,
             dialog_width,
-            f" {Symbols.SETTINGS} Configure OSR ID ",
+            f"{Symbols.SETTINGS} Configure OSR ID ",
             Colors.BORDER,
         )
 
