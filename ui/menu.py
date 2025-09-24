@@ -103,8 +103,8 @@ def display_sectioned_menu(
                 if current_y >= box_y + box_height - 2:
                     break
 
-                # Prepare option text with numbering
-                option_num = option_index + 1
+                # Prepare option text with numbering (0-9)
+                option_num = option_index % 10
                 if option_index == current_row:
                     display_text = f"  {Symbols.ARROW_RIGHT} {option_num}. {option}"
                     try:
@@ -137,7 +137,7 @@ def display_sectioned_menu(
         # Instructions
         instructions_y = box_y + box_height - 2
         instructions_text = center_string(
-            "↑↓ Navigate • 1-9 Quick select • Enter to choose • Q to quit",
+            "↑↓ Navigate • 0-9 Quick select • Enter to choose • Q to quit",
             box_width - 4,
         )
         try:
@@ -160,8 +160,8 @@ def display_sectioned_menu(
             current_row += 1
         elif key in (curses.KEY_ENTER, 10, 13):
             return current_row
-        elif key >= ord("1") and key <= ord("9"):
-            num = key - ord("1")
+        elif key >= ord("0") and key <= ord("9"):
+            num = key - ord("0")
             if num < total_options:
                 return num
         elif key in (ord("q"), ord("Q")):
@@ -285,8 +285,8 @@ def display_menu(
                 return list(selected)
             else:
                 return current_row
-        elif key >= ord("1") and key <= ord("9"):  # Number keys
-            num = key - ord("1")
+        elif key >= ord("0") and key <= ord("9"):  # Number keys 0-9
+            num = key - ord("0")
             if num < len(options):
                 if allow_multiple:
                     if num in selected:

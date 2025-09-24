@@ -77,8 +77,13 @@ class Database:
         return self.execute_query(query, {"osrid": self.osrid})
 
     def get_products_for_goods_in(self) -> List[Tuple]:
-        """Get products available for goods-in orders."""
+        """Get available products."""
         query = (
             "SELECT DISTINCT pri_name, pri_code FROM product_infos ORDER BY pri_name"
         )
+        return self.execute_query(query)
+
+    def get_container_types(self) -> List[Tuple]:
+        """Get available container types for transport orders."""
+        query = "SELECT cont_type_name FROM container_types ORDER BY cont_type_name"
         return self.execute_query(query)

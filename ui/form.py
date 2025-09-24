@@ -13,13 +13,18 @@ from .utils import (
     draw_border,
     show_status,
 )
+from .menu import display_menu
 from config.constants import Colors, Symbols
 
 
 def edit_form(
-    stdscr, fields: List[str], values: Dict[str, Any], title: str = "Edit Fields"
+    stdscr,
+    fields: List[str],
+    values: Dict[str, Any],
+    title: str = "Edit Fields",
+    enable_db_lookup: bool = False,
 ) -> Optional[Dict[str, Any]]:
-    """Enhanced field editing with better visual design."""
+    """Enhanced field editing with better visual design and optional database lookup."""
     current_row = 0
     height, width = get_screen_size(stdscr)
 
@@ -95,7 +100,12 @@ def edit_form(
 
         # Draw action buttons
         action_y = box_y + box_height - 3
-        actions = f"[S]ave/Send  •  [B]ack  •  [Enter] Edit Field"
+        if enable_db_lookup:
+            actions = (
+                f"[S]ave/Send  •  [B]ack  •  [Enter] Edit Field  •  [D] Database Lookup"
+            )
+        else:
+            actions = f"[S]ave/Send  •  [B]ack  •  [Enter] Edit Field"
         actions_centered = center_string(actions, box_width - 4)
         try:
             stdscr.addstr(
@@ -106,6 +116,21 @@ def edit_form(
             )
         except curses.error:
             pass
+
+        # Show DB indicator for database-enabled fields
+        if enable_db_lookup:
+            field = fields[current_row] if current_row < len(fields) else ""
+            if field in ["Container Type", "Product Code", "Product Name"]:
+                db_indicator = "[DB Available]"
+                try:
+                    stdscr.addstr(
+                        action_y + 1,
+                        box_x + 2,
+                        db_indicator,
+                        curses.color_pair(Colors.INFO),
+                    )
+                except curses.error:
+                    pass
 
         # Status bar
         show_status(stdscr, f"Editing field: {fields[current_row]}", "info")
@@ -124,6 +149,10 @@ def edit_form(
             return values
         elif key in (ord("b"), ord("B"), ord("h")):
             return None
+        elif key in (ord("d"), ord("D")) and enable_db_lookup:
+            # Handle database lookup
+            field = fields[current_row]
+            _handle_database_lookup(stdscr, field, values)
         elif key in (curses.KEY_ENTER, 10, 13, ord("l")):  # Enter
             field_name = fields[current_row]
             current_value = str(values.get(field_name, ""))
@@ -184,3 +213,79 @@ def edit_form(
             finally:
                 curses.noecho()
                 curses.curs_set(0)
+
+
+def _handle_database_lookup(stdscr, field: str, values: Dict[str, Any]) -> None:
+    """Handle database lookups for specific fields."""
+    from models.database import Database
+    from models.config import Config
+
+    try:
+        config_manager = Config()
+        config = config_manager.load()
+        osrid = config.get("osrid")
+        if not osrid:
+            show_status(stdscr, "No OSRID configured for database access", "error")
+            stdscr.refresh()
+            time.sleep(2)
+            return
+
+        db = Database(osrid)
+
+        if field == "Container Type":
+            try:
+                container_types = db.get_container_types()
+                if container_types:
+                    options = [ct[0] for ct in container_types]
+                    selected_idx = display_menu(
+                        stdscr,
+                        options,
+                        title="Select Container Type:",
+                        instructions="Choose from available container types",
+                    )
+                    if selected_idx is not None:
+                        values[field] = options[selected_idx]
+                else:
+                    show_status(
+                        stdscr, "No container types found in database", "warning"
+                    )
+                    stdscr.refresh()
+                    time.sleep(2)
+            except Exception as e:
+                show_status(stdscr, f"Database error: {str(e)}", "error")
+                stdscr.refresh()
+                time.sleep(2)
+
+        elif field in ["Product Code", "Product Name"]:
+            try:
+                products = db.get_products_for_goods_in()  # Using the combined method
+                if products:
+                    # Create display options showing both name and code
+                    options = [f"{prod[0]} ({prod[1]})" for prod in products]
+                    selected_idx = display_menu(
+                        stdscr,
+                        options,
+                        title="Select Product:",
+                        instructions="Choose from available products",
+                    )
+                    if selected_idx is not None:
+                        selected_product = products[selected_idx]
+                        values["Product Name"] = selected_product[0]
+                        values["Product Code"] = selected_product[1]
+                else:
+                    show_status(stdscr, "No products found in database", "warning")
+                    stdscr.refresh()
+                    time.sleep(2)
+            except Exception as e:
+                show_status(stdscr, f"Database error: {str(e)}", "error")
+                stdscr.refresh()
+                time.sleep(2)
+        else:
+            show_status(stdscr, f"No database lookup available for {field}", "info")
+            stdscr.refresh()
+            time.sleep(1.5)
+
+    except Exception as e:
+        show_status(stdscr, f"Database connection error: {str(e)}", "error")
+        stdscr.refresh()
+        time.sleep(2)

@@ -47,6 +47,21 @@ DEFAULT_ORDER_VALUES = {
         "Product Code": "test01",
         "Product Name": "Test-Product-1",
     },
+    OrderMode.TRANSPORT: [
+        {
+            "Order Number": "1",
+            "New Owner": "SRC",
+            "Owner": "SRC",
+            "Target Zone": "CIRCULATION",
+            "Container Number": "T925001",
+            "Container Type": "OSR_EVO",
+            "Compartment Type": "full",
+            "Slot Number": "1",
+            "Quantity": "10",
+            "Product Code": "test01",
+            "Product Name": "Test-Product-1",
+        }
+    ],
 }
 
 # Field ordering for different order types
@@ -54,39 +69,53 @@ FIELD_ORDER = {
     OrderMode.PICK_STANDARD: [
         "Quantity",
         "Container / Tray Number",
-        "name",
-        "Order Number",
         "Product Code",
         "Product Name",
+        "Order Number",
+        "name",
     ],
     OrderMode.PICK_MANUAL: [
         "Quantity",
-        "name",
-        "Order Number",
         "Product Code",
         "Product Name",
+        "Order Number",
+        "name",
     ],
     OrderMode.INVENTORY: [
-        "name",
-        "Order Number",
         "Container / Tray Number",
         "Product Code",
+        "Order Number",
+        "name",
     ],
     OrderMode.GOODS_IN: [
         "Quantity",
         "Container / Tray Number",
-        "Container Type",
-        "name",
-        "Order Number",
         "Product Code",
         "Product Name",
+        "Container Type",
+        "Order Number",
+        "name",
     ],
     OrderMode.GOODS_ADD: [
         "Quantity",
-        "name",
-        "Order Number",
         "Product Code",
         "Product Name",
+        "Order Number",
+        "name",
+    ],
+    OrderMode.TRANSPORT: [
+        "Quantity",
+        "Container Number",
+        "Product Code",
+        "Product Name",
+        "Target Zone",
+        "Container Type",
+        "Compartment Type",
+        "New Owner",
+        "Owner",
+        "Slot Number",
+        "Order Number",
+        "name",
     ],
 }
 
@@ -135,6 +164,16 @@ XML_TEMPLATES = {
         </goods_in_order>
     </host2osr>
     """,
+    OrderMode.TRANSPORT: """
+    <host2osr>
+        <transport_order order_number="{name}-transport-{Order Number}" processing_mode="standard" preannouncement="true" new_owner="{New Owner}" requires_route_assistance="false">
+            <transport_order_line target_zone="{Target Zone}"/>
+            <container container_number="{Container Number}" container_type="{Container Type}" compartment_type="{Compartment Type}" owner="{Owner}">
+                {slot_contents}
+            </container>
+        </transport_order>
+    </host2osr>
+    """,
 }
 
 # Line templates for pick orders
@@ -148,5 +187,13 @@ LINE_TEMPLATES = {
             <pick_order_line quantity="{Quantity}">
                 <product product_code="{Product Code}" name="{Product Name}" />
             </pick_order_line>
+        """,
+    OrderMode.TRANSPORT: """
+                <slot_contents slot_number="{Slot Number}">
+                    <inventory_order_line current_expected_quantity="{Quantity}">
+                        <product product_code="{Product Code}" name="{Product Name}" bundle_size="1">
+                        </product>
+                    </inventory_order_line>
+                </slot_contents>
         """,
 }

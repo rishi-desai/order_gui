@@ -229,8 +229,49 @@ class MainController:
                 order_data = {"mode": selected_mode, "values": values, "lines": lines}
                 xml = OrderXML.generate(order_data, config)
                 self._confirm_and_send_order(stdscr, xml, config)
+        elif selected_mode == OrderMode.TRANSPORT:
+            lines = [dict(v) for v in values]  # deep copy
+            send_now = self.order_controller.edit_transport_lines(
+                stdscr, selected_mode, lines, values
+            )
+            if send_now:
+                config[selected_mode] = lines
+                self.config_manager.save(config)
+                order_data = {"mode": selected_mode, "values": values, "lines": lines}
+                xml = OrderXML.generate(order_data, config)
+                self._confirm_and_send_order(stdscr, xml, config)
+        elif selected_mode == OrderMode.INVENTORY:
+            send_now = self.order_controller.edit_inventory_order(
+                stdscr, selected_mode, values
+            )
+            if send_now:
+                config[selected_mode] = values
+                self.config_manager.save(config)
+                order_data = {"mode": selected_mode, "values": values, "lines": None}
+                xml = OrderXML.generate(order_data, config)
+                self._confirm_and_send_order(stdscr, xml, config)
+        elif selected_mode == OrderMode.GOODS_IN:
+            send_now = self.order_controller.edit_goods_in_order(
+                stdscr, selected_mode, values
+            )
+            if send_now:
+                config[selected_mode] = values
+                self.config_manager.save(config)
+                order_data = {"mode": selected_mode, "values": values, "lines": None}
+                xml = OrderXML.generate(order_data, config)
+                self._confirm_and_send_order(stdscr, xml, config)
+        elif selected_mode == OrderMode.GOODS_ADD:
+            send_now = self.order_controller.edit_goods_add_order(
+                stdscr, selected_mode, values
+            )
+            if send_now:
+                config[selected_mode] = values
+                self.config_manager.save(config)
+                order_data = {"mode": selected_mode, "values": values, "lines": None}
+                xml = OrderXML.generate(order_data, config)
+                self._confirm_and_send_order(stdscr, xml, config)
         else:
-            # Handle single order types
+            # Fallback for any unhandled order types
             send_now = self._edit_order(stdscr, selected_mode, values)
             if send_now:
                 config[selected_mode] = values

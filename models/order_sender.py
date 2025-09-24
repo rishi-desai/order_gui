@@ -127,5 +127,7 @@ def get_order_type_from_xml(xml_content: str) -> str:
             return "goods_in"
     elif "<inventory_order" in xml_content:
         return "inventory"
+    elif "<transport_order" in xml_content:
+        return "transport"
     else:
         return "unknown"

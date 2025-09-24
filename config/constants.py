@@ -22,6 +22,7 @@ class OrderMode:
     INVENTORY = "Inventory"
     GOODS_IN = "Goods In"
     GOODS_ADD = "Goods Add"
+    TRANSPORT = "Transport"
 
 
 ORDER_TYPES = [
@@ -30,6 +31,7 @@ ORDER_TYPES = [
     OrderMode.INVENTORY,
     OrderMode.GOODS_IN,
     OrderMode.GOODS_ADD,
+    OrderMode.TRANSPORT,
 ]
 
 
@@ -84,7 +86,7 @@ class Symbols:
     BULLET = "•"
     CONFIRM = "✓"
     KEY = ">"
-    EDIT = "✎"
+    EDIT = "..."
     SETTINGS = "⛭"
 
     # Selection boxes

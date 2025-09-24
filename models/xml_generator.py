@@ -33,6 +33,8 @@ class OrderXML:
                 return OrderXML._generate_goods_in_order(values, config)
             elif mode == OrderMode.GOODS_ADD:
                 return OrderXML._generate_goods_add_order(values, config)
+            elif mode == OrderMode.TRANSPORT:
+                return OrderXML._generate_transport_order(mode, values, lines)
         except KeyError as e:
             raise OrderValidationError(f"Missing required field in order data: {e}")
         except Exception as e:
@@ -87,3 +89,21 @@ class OrderXML:
                 capacity_specs += f'<capacity_spec compartment_type="{spec}" maximum_quantity="{max_qty}"/>'
 
         return capacity_specs
+
+    @staticmethod
+    def _generate_transport_order(
+        mode: str, values_list: List[Dict], lines: List[Dict] = None
+    ) -> str:
+        """Generate XML for transport orders with multi-slot support."""
+        if not values_list or not isinstance(values_list, list):
+            raise OrderValidationError("Transport orders require a list of values")
+
+        slot_contents_xml = ""
+        template = LINE_TEMPLATES[mode]
+
+        for values in values_list:
+            slot_contents_xml += template.format(**values)
+
+        order_values = values_list[0]
+        order_values["slot_contents"] = slot_contents_xml
+        return XML_TEMPLATES[mode].format(**order_values).strip()
