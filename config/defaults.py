@@ -10,7 +10,6 @@ DEFAULT_ORDER_VALUES = {
     "first_run": True,
     "name": "src",
     "server_type": ServerType.LIVE,
-    "sandbox_default_element": "workflow.input.station.01",
     "sandbox_custom_elements": [],
     OrderMode.PICK_STANDARD: [
         {

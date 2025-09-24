@@ -101,7 +101,7 @@ class Symbols:
     TIME = "@"
     QUESTION = "?"
 
-    # Box drawing (ASCII fallback)
+    # Box drawing
     HORIZONTAL_LINE = "─"
     VERTICAL_LINE = "│"
     TOP_LEFT = "┌"

@@ -17,19 +17,29 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
+# Import CLI tools
+from utils.cli_tools import (
+    test_imports,
+    cleanup_history,
+    clean_files,
+    build_zipapp,
+    test_system_connections,
+    show_server_info,
+)
+
 
 def parse_arguments():
     """Parse and return command line arguments."""
     parser = argparse.ArgumentParser(
-        description="OSR Order GUI v1.0 - OSR Order Management System",
+        description="OSR Order GUI v1.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py                    # Normal operation
-  python main.py --dry-run          # Test mode (no orders sent)
-  python main.py --readme           # Display README documentation
-  python main.py --cleanup 1w       # Clean orders older than 1 week
-  python main.py --cleanup 2023-12-01  # Clean orders before specific date
+    ./order_gui.pyz                       # Normal operation
+    ./order_gui.pyz --full-test           # Run full test suite
+    ./order_gui.pyz --dry-run             # Test mode (no orders sent)
+    ./order_gui.pyz --cleanup 1w          # Clean orders older than 1 week
+    ./order_gui.pyz --cleanup 2023-12-01  # Clean orders before specific date
         """,
     )
 
@@ -40,11 +50,7 @@ Examples:
     )
 
     parser.add_argument(
-        "--test-imports", action="store_true", help="Test all imports and exit"
-    )
-
-    parser.add_argument(
-        "--readme", action="store_true", help="Display README documentation and exit"
+        "--full-test", action="store_true", help="Run full test suite and exit"
     )
 
     parser.add_argument(
@@ -56,185 +62,34 @@ Examples:
 
     parser.add_argument("--version", action="version", version="OSR Order GUI v1.0")
 
+    parser.add_argument(
+        "--server-info",
+        action="store_true",
+        help="Display server and environment information",
+    )
+    parser.add_argument(
+        "--test-imports", action="store_true", help="Test all imports and exit"
+    )
+
+    parser.add_argument(
+        "--test-system",
+        action="store_true",
+        help="Test database and system connections",
+    )
+
+    parser.add_argument(
+        "--build",
+        action="store_true",
+        help="Build zipapp package (developer mode)",
+    )
+
+    parser.add_argument(
+        "--clean-files",
+        action="store_true",
+        help="Clean temporary files and cache (developer mode)",
+    )
+
     return parser.parse_args()
-
-
-def test_imports():
-    """Test module imports and return success status."""
-    print("Testing imports...")
-
-    try:
-        print("  ✓ Config modules...", end=" ")
-        from config import constants, defaults
-
-        print("OK")
-
-        print("  ✓ UI modules...", end=" ")
-        from ui import utils, dialog, menu, form
-
-        print("OK")
-
-        print("  ✓ Model modules...", end=" ")
-        from models import config, database, history, order_sender, xml_generator
-
-        print("OK")
-
-        print("  ✓ Controller modules...", end=" ")
-        from controllers import main_controller, order_controller, history_controller
-
-        print("OK")
-
-        print("  ✓ Utility modules...", end=" ")
-        from utils import exceptions
-
-        print("OK")
-
-        print("\n✅ All imports successful!")
-        return True
-
-    except ImportError as e:
-        print(f"\n❌ Import error: {e}")
-        return False
-    except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
-        return False
-
-
-def show_readme():
-    """Display README content from the application."""
-    try:
-        # Try different methods to find README.md
-        readme_content = None
-
-        # Method 1: Try to read from archive using pkgutil
-        try:
-            import pkgutil
-
-            readme_data = pkgutil.get_data(
-                __name__.split(".")[0] if "." in __name__ else __name__, "README.md"
-            )
-            if readme_data:
-                readme_content = readme_data.decode("utf-8")
-        except (ImportError, FileNotFoundError, AttributeError):
-            pass
-
-        # Method 2: Try to read from current directory (for source execution)
-        if not readme_content:
-            readme_path = os.path.join(os.path.dirname(__file__), "README.md")
-            if os.path.exists(readme_path):
-                with open(readme_path, "r", encoding="utf-8") as f:
-                    readme_content = f.read()
-
-        # Method 3: Try to read from one directory up (common case)
-        if not readme_content:
-            readme_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), "README.md"
-            )
-            if os.path.exists(readme_path):
-                with open(readme_path, "r", encoding="utf-8") as f:
-                    readme_content = f.read()
-
-        if readme_content:
-            print("=" * 60)
-            print("OSR ORDER GUI - README")
-            print("=" * 60)
-            print(readme_content)
-            print("=" * 60)
-            return True
-        else:
-            print("README.md not found in the application directory.")
-            print("This usually means you're running from source code.")
-            print("Try: cat README.md")
-            return False
-
-    except Exception as e:
-        print(f"Error reading README: {e}")
-        return False
-
-
-def cleanup_history(timeframe):
-    """Clean up order history based on timeframe."""
-    import json
-    from datetime import datetime, timedelta
-
-    try:
-        # Import constants to get the history file path
-        from config.constants import ORDERS_HISTORY_FILE
-
-        if not os.path.exists(ORDERS_HISTORY_FILE):
-            print("No order history file found. Nothing to clean.")
-            return True
-
-        # Load existing history
-        with open(ORDERS_HISTORY_FILE, "r") as f:
-            history = json.load(f)
-
-        original_count = len(history.get("orders", []))
-
-        if original_count == 0:
-            print("Order history is already empty.")
-            return True
-
-        # Calculate cutoff date
-        now = datetime.now()
-
-        if timeframe == "all":
-            cutoff_date = now  # Remove everything
-        elif timeframe == "1d":
-            cutoff_date = now - timedelta(days=1)
-        elif timeframe == "1w":
-            cutoff_date = now - timedelta(weeks=1)
-        elif timeframe == "2w":
-            cutoff_date = now - timedelta(weeks=2)
-        elif timeframe == "1m":
-            cutoff_date = now - timedelta(days=30)
-        else:
-            # Try to parse as date (YYYY-MM-DD)
-            try:
-                cutoff_date = datetime.strptime(timeframe, "%Y-%m-%d")
-            except ValueError:
-                print(f"Invalid timeframe: {timeframe}")
-                print("Valid options: 1d, 1w, 2w, 1m, all, or YYYY-MM-DD")
-                return False
-
-        # Filter orders
-        if timeframe == "all":
-            filtered_orders = []
-        else:
-            filtered_orders = []
-            for order in history.get("orders", []):
-                order_time = datetime.fromisoformat(order.get("timestamp", ""))
-                if order_time >= cutoff_date:
-                    filtered_orders.append(order)
-
-        # Update history
-        history["orders"] = filtered_orders
-        removed_count = original_count - len(filtered_orders)
-
-        # Save updated history
-        with open(ORDERS_HISTORY_FILE, "w") as f:
-            json.dump(history, f, indent=2)
-
-        print(f"Order History Cleanup Complete")
-        print(f"Original orders: {original_count}")
-        print(f"Removed: {removed_count}")
-        print(f"Remaining: {len(filtered_orders)}")
-
-        if timeframe == "all":
-            print("All order history has been cleared.")
-        else:
-            print(f"Removed orders older than {timeframe}")
-
-        return True
-
-    except ImportError:
-        print(
-            "Error: Could not import configuration. Run from the application directory."
-        )
-        return False
-    except Exception as e:
-        print(f"Error cleaning up history: {e}")
-        return False
 
 
 def main():
@@ -243,19 +98,42 @@ def main():
         # Parse command line arguments
         args = parse_arguments()
 
+        # Run full test suite if requested
+        if args.full_test:
+            test1 = test_imports()
+            print("\n")
+            test2 = test_system_connections()
+            success = test1 and test2
+            sys.exit(0 if success else 1)
+
         # Test imports if requested
         if args.test_imports:
             success = test_imports()
             sys.exit(0 if success else 1)
 
-        # Show README if requested
-        if args.readme:
-            success = show_readme()
-            sys.exit(0 if success else 1)
-
         # Clean up history if requested
         if args.cleanup:
             success = cleanup_history(args.cleanup)
+            sys.exit(0 if success else 1)
+
+        # Build zipapp if requested (developer mode)
+        if args.build:
+            success = build_zipapp()
+            sys.exit(0 if success else 1)
+
+        # Clean files if requested (developer mode)
+        if args.clean_files:
+            success = clean_files()
+            sys.exit(0 if success else 1)
+
+        # Test system connections if requested
+        if args.test_system:
+            success = test_system_connections()
+            sys.exit(0 if success else 1)
+
+        # Show server info if requested
+        if args.server_info:
+            success = show_server_info()
             sys.exit(0 if success else 1)
 
         # Try to import the main controller

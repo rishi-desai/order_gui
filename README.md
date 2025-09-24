@@ -23,14 +23,14 @@ You should now be able to see all the files in the `order_gui` directory. See [D
 This application is distributed as a single `.pyz` file using Python's zipapp module. Look for `order_gui.pyz` in the directory. If you do not see it, or want to rebuild it, run:
 
 ```bash
-python3 build.py
+python3 main.py --build
 # or
-./build.py
+./main.py --build
 
 # If you want to clean up temporary files
-python3 cleanup.py
+python3 main.py --clean-files
 # or
-./cleanup.py
+./main.py --clean-files
 ```
 
 That should create `order_gui.pyz` in the current directory. You can then delete the source files if you want to only keep the `.pyz` file or keep the source files if you want to implement any new custom features.
@@ -48,9 +48,8 @@ chmod +x order_gui.pyz
 
 # Command line options
 ./order_gui.pyz --help          # Show help
-./order_gui.pyz --readme        # Show README
 ./order_gui.pyz --version       # Show version
-./order_gui.pyz --test-imports  # Test imports and exit
+./order_gui.pyz --full-test     # Test imports and exit
 ./order_gui.pyz --cleanup 1w    # Clean orders older than 1 week
 ```
 
@@ -66,14 +65,18 @@ And that's it! I tried to make the application as user-friendly as possible, but
 
 ## Command Line Options
 
-| Option                     | Description                              |
-|----------------------------|------------------------------------------|
-| `--dry-run`                | Test mode - no actual orders sent to OSR |
-| `--test-imports`           | Test module imports and exit             |
-| `--cleanup <timeframe>`    | Remove order history                     |
-| `--readme`                 | Show README                              |
-| `--version`                | Show version information                 |
-| `--help`                   | Show detailed help and examples          |
+| Option                     | Description                                       |
+|----------------------------|---------------------------------------------------|
+| `--help`, `-h`             | Show detailed help and examples                   |
+| `--dry-run`                | Test mode - no actual orders sent to OSR          |
+| `--full-test`              | Full test of all necessary application components |
+| `--cleanup TIMEFRAME`      | Remove order history after specified timeframe    |
+| `--version`                | Show version information                          |
+| `--server-info`            | Show server environment information               |
+| `--test-imports`           | Test module imports and exit                      |
+| `--test-system`            | Test system connections and exit                  |
+| `--build`                  | Build the zipapp (developer use)                  |
+| `--clean-files`            | Clean temporary files (developer use)             |
 
 ## Features
 
@@ -94,45 +97,44 @@ And that's it! I tried to make the application as user-friendly as possible, but
 
 ```
 order_gui/
-├── main.py                 # Application entry point
-├── __main__.py             # Zipapp entry point
-├── build.py                # Build script for creating zipapp
-├── cleanup.py              # Cleanup script for temp files
-├── config/                 # Configuration and constants
-│   ├── __init__.py         # Package initialization
-│   ├── constants.py        # Order types, colors, symbols, file paths
-│   └── defaults.py         # Default settings and XML templates
-├── models/                 # Business logic and data handling
-│   ├── __init__.py         # Package initialization
-│   ├── config.py           # Settings management (Config class)
-│   ├── database.py         # Oracle database operations (Database class)
-│   ├── history.py          # Order tracking (History class)
-│   ├── order_sender.py     # CORBA order transmission
-│   ├── sandbox_commands.py # Test server sandbox command generation
-│   └── xml_generator.py    # XML creation (OrderXML class)
-├── ui/                     # User interface components
-│   ├── __init__.py         # Package initialization
-│   ├── dialog.py           # Message dialogs and input prompts
-│   ├── form.py             # Field editing forms
-│   ├── menu.py             # Menu navigation
-│   └── utils.py            # UI utilities (colors, drawing, text)
-├── controllers/            # Application flow control
-│   ├── __init__.py         # Package initialization
+├── main.py                     # Application entry point
+├── __main__.py                 # Zipapp entry point
+├── config/                     # Configuration and constants
+│   ├── __init__.py             # Package initialization
+│   ├── constants.py            # Order types, colors, symbols, file paths
+│   └── defaults.py             # Default settings and XML templates
+├── models/                     # Business logic and data handling
+│   ├── __init__.py             # Package initialization
+│   ├── config.py               # Settings management (Config class)
+│   ├── database.py             # Oracle database operations (Database class)
+│   ├── history.py              # Order tracking (History class)
+│   ├── order_sender.py         # CORBA order transmission
+│   ├── sandbox_commands.py     # Test server sandbox command generation
+│   └── xml_generator.py        # XML creation (OrderXML class)
+├── ui/                         # User interface components
+│   ├── __init__.py             # Package initialization
+│   ├── dialog.py               # Message dialogs and input prompts
+│   ├── form.py                 # Field editing forms
+│   ├── menu.py                 # Menu navigation
+│   └── utils.py                # UI utilities (colors, drawing, text)
+├── controllers/                # Application flow control
+│   ├── __init__.py             # Package initialization
 │   ├── config_controller.py    # Settings management
 │   ├── history_controller.py   # Order history and cancellation
 │   ├── main_controller.py      # Main application flow
 │   ├── order_controller.py     # Order creation workflow
 │   └── sandbox_controller.py   # Test server sandbox operations
-└── utils/                  # Utilities and exceptions
-    ├── __init__.py         # Package initialization
-    └── exceptions.py       # Custom exception classes
+└── utils/                      # Utilities and exceptions
+    ├── __init__.py             # Package initialization
+    ├── cli_tools.py            # Command line parsing
+    └── exceptions.py           # Custom exception classes
 ```
 
 ## Common Issues
 
 | Problem                    | Solution                                        |
 |----------------------------|-------------------------------------------------|
-| Import errors              | Ensure `./order_gui.pyz --test-imports` passes  |
+| Import errors              | Ensure `./order_gui.pyz --full-test` passes     |
 | Database connection failed | Verify `cx_Oracle` installation and access      |
 | ORB connection failed      | Check `CORBA` libraries and OSR connectivity    |
 | Permission denied          | Ensure correct permissions for `order_gui.pyz`  |
