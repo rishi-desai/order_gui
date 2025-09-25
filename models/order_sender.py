@@ -1,13 +1,10 @@
-"""
-Order sending via CORBA to OSR system.
-"""
+"""Order sending via CORBA to OSR system."""
 
 import sys
 import subprocess
 import re
 from typing import Tuple
 
-# CORBA imports - wrapped in try/except for environments without CORBA
 try:
     from omniORB import CORBA, PortableServer
     import OSR, OSR__POA
@@ -34,18 +31,16 @@ class OrderSender:
             raise OrderValidationError("Order XML cannot be empty")
 
         if self.dry_run:
-            return  # Skip actual sending in dry run mode
+            return
 
         if not CORBA_AVAILABLE:
             raise ORBConnectionError("CORBA libraries not available")
 
         try:
-            # Initialize CORBA ORB
             orb = CORBA.ORB_init(sys.argv, CORBA.ORB_ID)
             obj = orb.resolve_initial_references("NameService")
             rootContext = obj._narrow(CosNaming.NamingContext)
 
-            # Resolve GCS
             gcsName = [CosNaming.NameComponent("GCS", "")]
             gcs_obj = rootContext.resolve(gcsName)
             gcs = gcs_obj._narrow(GCS.NamingContext)

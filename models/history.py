@@ -1,6 +1,4 @@
-"""
-Order history management.
-"""
+"""Order history management."""
 
 import json
 import os
@@ -48,8 +46,8 @@ class History:
             "created": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        orders.insert(0, order_record)  # Most recent first
-        orders = orders[:100]  # Keep only last 100 orders
+        orders.insert(0, order_record)
+        orders = orders[:100]
         History.save(orders)
 
     @staticmethod
@@ -91,7 +89,7 @@ class History:
         """Get the most recent order from history."""
         orders = History.load()
         if orders:
-            last_order = orders[0]  # Most recent first
+            last_order = orders[0]
             return {
                 "order_id": last_order.get("order_id"),
                 "order_type": last_order.get("type"),

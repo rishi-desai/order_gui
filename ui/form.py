@@ -1,6 +1,4 @@
-"""
-Form component for field editing.
-"""
+"""Form component for field editing."""
 
 import curses
 import time
@@ -31,13 +29,11 @@ def edit_form(
     while True:
         stdscr.clear()
 
-        # Calculate dynamic box dimensions based on content
         max_field_len = max(len(field) for field in fields) if fields else 20
         max_value_len = (
             max(len(str(values.get(field, ""))) for field in fields) if fields else 20
         )
 
-        # Instruction text to check for sizing
         if enable_db_lookup:
             instruction_text = (
                 "[S]end Order  •  [B]ack  •  [Enter] Edit Field  •  [D] Database Lookup"
@@ -45,9 +41,8 @@ def edit_form(
         else:
             instruction_text = "[S]end Order  •  [B]ack  •  [Enter] Edit Field"
 
-        # Calculate minimum width needed
         content_width = max(
-            max_field_len + max_value_len + 20,  # Field content
+            max_field_len + max_value_len + 20,
             len(title) + 10,  # Title
             len(instruction_text) + 10,  # Instructions
         )

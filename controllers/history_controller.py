@@ -1,6 +1,4 @@
-"""
-History controller for viewing and managing order history.
-"""
+"""History controller for viewing and managing order history."""
 
 import time
 from typing import Dict, Any
@@ -36,7 +34,6 @@ class HistoryController:
             return
 
         while True:
-            # Load orders for current OSR
             osr_orders = History.get_orders_for_osr(current_osrid)
 
             if not osr_orders:
@@ -46,7 +43,7 @@ class HistoryController:
                     "info",
                 )
                 stdscr.refresh()
-                time.sleep(2)  # Show status for 2 seconds
+                time.sleep(2)
                 return
 
             # Prepare display options

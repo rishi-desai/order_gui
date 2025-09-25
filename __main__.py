@@ -11,13 +11,9 @@ See README.md for full documentation.
 import sys
 import os
 import argparse
+import curses
+import traceback
 
-# Add the current directory to Python path so imports work when run from anywhere
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
-# Import CLI tools
 from utils.cli_tools import (
     test_imports,
     cleanup_history,
@@ -26,6 +22,10 @@ from utils.cli_tools import (
     test_system_connections,
     show_server_info,
 )
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 
 def parse_arguments():
@@ -48,20 +48,16 @@ Examples:
         action="store_true",
         help="Run in test mode - no actual orders will be sent",
     )
-
     parser.add_argument(
         "--full-test", action="store_true", help="Run full test suite and exit"
     )
-
     parser.add_argument(
         "--cleanup",
         type=str,
         metavar="TIMEFRAME",
         help="Clean up order history (1d, 1w, 2w, 1m, all, or YYYY-MM-DD)",
     )
-
     parser.add_argument("--version", action="version", version="OSR Order GUI v1.0")
-
     parser.add_argument(
         "--server-info",
         action="store_true",
@@ -70,19 +66,16 @@ Examples:
     parser.add_argument(
         "--test-imports", action="store_true", help="Test all imports and exit"
     )
-
     parser.add_argument(
         "--test-system",
         action="store_true",
         help="Test database and system connections",
     )
-
     parser.add_argument(
         "--build",
         action="store_true",
         help="Build zipapp package (developer mode)",
     )
-
     parser.add_argument(
         "--clean-files",
         action="store_true",
@@ -95,10 +88,8 @@ Examples:
 def main():
     """Application entry point."""
     try:
-        # Parse command line arguments
         args = parse_arguments()
 
-        # Run full test suite if requested
         if args.full_test:
             test1 = test_imports()
             print("\n")
@@ -106,37 +97,30 @@ def main():
             success = test1 and test2
             sys.exit(0 if success else 1)
 
-        # Test imports if requested
         if args.test_imports:
             success = test_imports()
             sys.exit(0 if success else 1)
 
-        # Clean up history if requested
         if args.cleanup:
             success = cleanup_history(args.cleanup)
             sys.exit(0 if success else 1)
 
-        # Build zipapp if requested (developer mode)
         if args.build:
             success = build_zipapp()
             sys.exit(0 if success else 1)
 
-        # Clean files if requested (developer mode)
         if args.clean_files:
             success = clean_files()
             sys.exit(0 if success else 1)
 
-        # Test system connections if requested
         if args.test_system:
             success = test_system_connections()
             sys.exit(0 if success else 1)
 
-        # Show server info if requested
         if args.server_info:
             success = show_server_info()
             sys.exit(0 if success else 1)
 
-        # Try to import the main controller
         try:
             from controllers.main_controller import MainController
             from config.constants import APP_NAME, APP_VERSION
@@ -147,12 +131,7 @@ def main():
             print("\nTry running: python main.py --test-imports")
             sys.exit(1)
 
-        # Initialize and run the main controller
         controller = MainController(dry_run=args.dry_run)
-
-        # Start the application with curses wrapper
-        import curses
-
         curses.wrapper(controller.run)
 
     except KeyboardInterrupt:
@@ -160,8 +139,6 @@ def main():
         sys.exit(0)
     except Exception as e:
         print(f"\nFatal error: {e}")
-        import traceback
-
         traceback.print_exc()
         sys.exit(1)
 

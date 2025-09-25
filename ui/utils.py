@@ -1,6 +1,4 @@
-"""
-Basic UI utilities and helpers for curses interface.
-"""
+"""Basic UI utilities and helpers for curses interface."""
 
 import curses
 from typing import Tuple
@@ -36,7 +34,7 @@ def write_text(stdscr, y: int, x: int, text: str, attr: int = 0) -> None:
                 safe_text = text.encode("ascii", "replace").decode("ascii")
                 stdscr.addstr(y, x, safe_text, attr)
             except curses.error:
-                pass  # Skip if all else fails
+                pass
 
 
 def get_screen_size(stdscr) -> Tuple[int, int]:

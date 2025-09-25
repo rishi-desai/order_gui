@@ -1,12 +1,10 @@
-"""
-Sandbox command generation for test server operations.
-"""
+"""Sandbox command generation for test server operations."""
 
 import re
-from typing import Optional, Dict, Any
-from enum import Enum
 import os
 import subprocess
+from typing import Optional, Dict, Any
+from enum import Enum
 
 
 class SandboxAction(Enum):
@@ -32,43 +30,19 @@ class SandboxCommandGenerator:
         return f"sim{self.osrid}"
 
     def generate_insert_command(self, element: str, carrier: str) -> str:
-        """Generate command to insert a carrier into an element.
-
-        Args:
-            element: Qualified name of workflow element (e.g., 'workflow.element')
-            carrier: Carrier identifier to insert
-
-        Returns:
-            Complete sandbox command string
-        """
+        """Generate command to insert a carrier into an element."""
         sim_prefix = self.get_sim_prefix()
         return f"{sim_prefix} -i {element} {carrier}"
 
     def generate_remove_command(self, element: str, carrier: str) -> str:
-        """Generate command to remove a carrier from an element.
-
-        Args:
-            element: Qualified name of workflow element
-            carrier: Carrier identifier to remove
-
-        Returns:
-            Complete sandbox command string
-        """
+        """Generate command to remove a carrier from an element."""
         sim_prefix = self.get_sim_prefix()
         return f"{sim_prefix} -r {element} {carrier}"
 
     def generate_enable_command(
         self, element: str, element_type: str = "element"
     ) -> str:
-        """Generate command to enable an element, station, or gateway.
-
-        Args:
-            element: Qualified name of workflow element
-            element_type: Type - 'element'/'e', 'station'/'s', or 'gateway'/'g'
-
-        Returns:
-            Complete sandbox command string
-        """
+        """Generate command to enable an element, station, or gateway."""
         sim_prefix = self.get_sim_prefix()
         type_map = {
             "element": "e",
@@ -84,15 +58,7 @@ class SandboxCommandGenerator:
     def generate_disable_command(
         self, element: str, element_type: str = "element"
     ) -> str:
-        """Generate command to disable an element, station, or gateway.
-
-        Args:
-            element: Qualified name of workflow element
-            element_type: Type - 'element'/'e', 'station'/'s', or 'gateway'/'g'
-
-        Returns:
-            Complete sandbox command string
-        """
+        """Generate command to disable an element, station, or gateway."""
         sim_prefix = self.get_sim_prefix()
         type_map = {
             "element": "e",

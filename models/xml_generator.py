@@ -1,6 +1,4 @@
-"""
-XML generation for OSR orders.
-"""
+"""XML generation for OSR orders."""
 
 from typing import Dict, Any, List
 

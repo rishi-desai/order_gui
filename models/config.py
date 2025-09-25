@@ -1,6 +1,4 @@
-"""
-Configuration management for the OSR Order GUI.
-"""
+"""Configuration management for the OSR Order GUI."""
 
 import json
 import os
@@ -22,7 +20,6 @@ class Config:
         try:
             with open(self.config_file, "r") as f:
                 config = json.load(f)
-                # Merge with defaults for any missing keys
                 for key, value in DEFAULT_ORDER_VALUES.items():
                     if key not in config:
                         config[key] = value

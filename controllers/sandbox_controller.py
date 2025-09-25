@@ -1,6 +1,4 @@
-"""
-Sandbox controller for test server operations.
-"""
+"""Sandbox controller for test server operations."""
 
 from typing import Dict, Any
 

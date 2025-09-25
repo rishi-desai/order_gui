@@ -1,6 +1,4 @@
-"""
-Dialog components for user interaction.
-"""
+"""Dialog components for user interaction."""
 
 import curses
 from typing import Optional, Any
@@ -22,18 +20,7 @@ def display_dialog(
     message_type: str = "info",
     show_yes_no: bool = False,
 ) -> Optional[bool]:
-    """Display enhanced message dialog and wait for acknowledgment.
-
-    Args:
-        stdscr: The curses screen object
-        message: Message to display
-        title: Dialog title
-        message_type: Type of message (info, error, warning, success, question)
-        show_yes_no: If True, show Yes/No options and return True/False, otherwise return None
-
-    Returns:
-        None for regular messages, True/False for yes/no questions
-    """
+    """Display enhanced message dialog and wait for acknowledgment."""
     height, width = get_screen_size(stdscr)
     stdscr.clear()
 
@@ -45,7 +32,6 @@ def display_dialog(
     y_start = (height - message_height) // 2
     x_start = (width - message_width) // 2
 
-    # Enhanced styling based on message type
     type_config = {
         "error": (Colors.ERROR, "X", "Error"),
         "success": (Colors.SUCCESS, "✓", "Success"),

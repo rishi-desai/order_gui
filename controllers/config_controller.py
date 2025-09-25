@@ -1,6 +1,4 @@
-"""
-Configuration controller for managing application settings.
-"""
+"""Configuration controller for managing application settings."""
 
 import curses
 import os
@@ -23,16 +21,13 @@ class ConfigController:
         height, width = get_screen_size(stdscr)
         stdscr.clear()
 
-        # Get current OSR ID from config or environment
         current_osrid = config.get("osr_id", os.environ.get("OSR_ID", ""))
 
-        # Create dialog for OSR ID configuration
         dialog_width = min(width - 8, 80)
         dialog_height = 12
         dialog_x = (width - dialog_width) // 2
         dialog_y = (height - dialog_height) // 2
 
-        # Draw dialog box with title
         draw_border(
             stdscr,
             dialog_y,
@@ -44,7 +39,6 @@ class ConfigController:
         )
 
         try:
-            # Show current OSR ID
             info_text = "Current OSR ID: {}".format(current_osrid or "Not Set")
             write_text(
                 stdscr,

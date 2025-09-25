@@ -1,6 +1,4 @@
-"""
-Main application controller that orchestrates the GUI workflow.
-"""
+"""Main application controller that orchestrates the GUI workflow."""
 
 import curses
 import time
@@ -46,8 +44,7 @@ class MainController:
 
     def run(self, stdscr) -> None:
         """Main application entry point."""
-        # Initialize curses settings
-        curses.curs_set(0)  # Hide cursor
+        curses.curs_set(0)
         setup_colors()
 
         # Load configuration

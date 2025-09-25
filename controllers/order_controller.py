@@ -1,6 +1,4 @@
-"""
-Order-specific controller for handling order creation and editing.
-"""
+"""Order-specific controller for handling order creation and editing."""
 
 import curses
 import time
@@ -34,7 +32,6 @@ class OrderController:
         while True:
             stdscr.clear()
 
-            # Enhanced dynamic box sizing based on content
             max_line_len = (
                 max(
                     len(
@@ -46,7 +43,6 @@ class OrderController:
                 else 40
             )
 
-            # Calculate minimum width for instructions to prevent truncation
             instructions = f"{Symbols.ARROW_UP}/{Symbols.ARROW_DOWN} Navigate • [A]dd • [D]elete • [Enter] Edit • [S]end • [B]ack"
             min_width = max(len(instructions) + 8, max_line_len + 20, 80)
 

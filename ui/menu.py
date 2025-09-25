@@ -1,6 +1,4 @@
-"""
-Menu component for navigation and selection.
-"""
+"""Menu component for navigation and selection."""
 
 import curses
 from typing import List, Optional, Union, Dict
@@ -22,23 +20,10 @@ def display_sectioned_menu(
     status_info: str = "",
     instructions: str = None,
 ) -> Optional[int]:
-    """
-    Display a menu with sections for better organization.
-
-    Args:
-        stdscr: curses screen object
-        sections: Dict with section names as keys and option lists as values
-        title: Menu title
-        status_info: Additional status information to display
-        instructions: Custom instructions text
-
-    Returns:
-        Index of selected option (global index across all sections) or None
-    """
+    """Display a menu with sections for better organization."""
     curses.curs_set(0)
     current_row = 0
 
-    # Flatten options and create section mapping
     all_options = []
     section_starts = {}
     current_index = 0

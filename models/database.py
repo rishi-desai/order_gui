@@ -1,11 +1,8 @@
-"""
-Database management for the OSR Order GUI.
-"""
+"""Database management for the OSR Order GUI."""
 
 import time
 from typing import List, Tuple, Optional, Dict
 
-# Import oracle module (assuming it's available)
 try:
     import oracle
 except ImportError:

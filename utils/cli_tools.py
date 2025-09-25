@@ -1,11 +1,8 @@
 """
 CLI Tools and Utilities
 
-Common functionality for command-line operations including:
-- Import testing
-- File cleanup
-- System diagnostics
-- Build operations
+Command-line operations including import testing, file cleanup, 
+system diagnostics, and build operations.
 """
 
 import sys
@@ -94,15 +91,14 @@ def cleanup_history(timeframe):
         elif timeframe == "1m":
             cutoff_date = now - timedelta(days=30)
         else:
-            # Try to parse as date (YYYY-MM-DD)
             try:
                 cutoff_date = datetime.strptime(timeframe, "%Y-%m-%d")
             except ValueError:
-                print(f"Invalid timeframe: {timeframe}")
-                print("Valid options: 1d, 1w, 2w, 1m, all, or YYYY-MM-DD")
+                print(
+                    f"Invalid timeframe format: {timeframe}. Use 1d, 1w, 2w, 1m, all, or YYYY-MM-DD"
+                )
                 return False
 
-        # Filter orders
         if timeframe == "all":
             filtered_orders = []
         else:
@@ -112,11 +108,9 @@ def cleanup_history(timeframe):
                 if order_time >= cutoff_date:
                     filtered_orders.append(order)
 
-        # Update history
         history["orders"] = filtered_orders
         removed_count = original_count - len(filtered_orders)
 
-        # Save updated history
         with open(ORDERS_HISTORY_FILE, "w") as f:
             json.dump(history, f, indent=2)
 
@@ -149,17 +143,12 @@ def clean_files():
     removed_folders = []
     removed_files = []
 
-    # File extensions to remove
     temp_extensions = [".pyc", ".pyo", ".pyd", "~", ".bak", ".swp", ".tmp"]
-
-    # Directories to remove
     temp_dirs = ["__pycache__", ".pytest_cache", ".coverage", "htmlcov"]
 
-    # Get the application root directory (one level up from utils)
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     for root, dirs, files in os.walk(script_dir, topdown=False):
-        # Remove temporary files
         for file in files:
             file_path = os.path.join(root, file)
 
@@ -172,40 +161,35 @@ def clean_files():
                     os.remove(file_path)
                     removed_files.append(os.path.relpath(file_path, script_dir))
                 except OSError as e:
-                    print(f"Warning: Could not remove {file_path}: {e}")
+                    print(f"⚠️  Failed to remove {file_path}: {e}")
 
-        # Remove temporary directories
-        for temp_dir in temp_dirs:
-            if temp_dir in dirs:
-                temp_path = os.path.join(root, temp_dir)
+        for dir_name in dirs:
+            if dir_name in temp_dirs:
+                dir_path = os.path.join(root, dir_name)
                 try:
-                    shutil.rmtree(temp_path)
-                    removed_folders.append(os.path.relpath(temp_path, script_dir))
+                    shutil.rmtree(dir_path)
+                    removed_folders.append(os.path.relpath(dir_path, script_dir))
                 except OSError as e:
-                    print(f"Warning: Could not remove {temp_path}: {e}")
+                    print(f"⚠️  Failed to remove {dir_path}: {e}")
 
-    print(
-        f"""
-        🗑️ Removed {len(removed_folders)} directories: {removed_folders}
-        🗑️ Removed {len(removed_files)} files: {removed_files}
-        """
-    )
-    return True
+    if removed_files or removed_folders:
+        print(f"✅ Cleaned {len(removed_files)} files and {len(removed_folders)} directories")
+        return True
+    else:
+        print("✅ No temporary files found to clean")
+        return True
 
 
 def build_zipapp(output_file="order_gui.pyz"):
     """Build zipapp package."""
     print("📦 Building zipapp...")
 
-    # Clean files first
     if not clean_files():
         return False
 
-    # Get the application root directory
     current_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     output_path = current_dir / output_file
 
-    # Remove existing zipapp file if it exists
     if output_path.exists():
         try:
             output_path.unlink()
@@ -214,7 +198,6 @@ def build_zipapp(output_file="order_gui.pyz"):
             print(f"❌ Failed to remove existing {output_file}: {e}")
             return False
 
-    # Create zipapp
     cmd = [
         sys.executable,
         "-m",
@@ -232,16 +215,12 @@ def build_zipapp(output_file="order_gui.pyz"):
         print(f"❌ Zipapp creation failed: {result.stderr}")
         return False
 
-    output_path = current_dir / output_file
-
-    # Make executable on Unix systems
     if os.name != "nt":
         try:
             os.chmod(output_path, 0o755)
         except OSError:
             pass
 
-    # Test the zipapp
     test_cmd = [sys.executable, str(output_path), "--test-imports"]
     test_result = subprocess.run(test_cmd, capture_output=True, text=True)
 
@@ -259,33 +238,26 @@ def test_system_connections():
     """Test database and system connections."""
     print("🔍 Testing system connections...")
 
-    # Connection test results
     connection_results = {"database": False, "corba": False, "overall": False}
 
-    # Test Oracle database connection
     try:
         print("  📊 Testing Oracle database availability...", end=" ")
 
-        # Check if oracle module is available
         try:
             import oracle
 
             print("✅ Oracle module available")
 
-            # Test database connection with a test OSRID
             from models.database import Database
 
-            test_osrid = "osr1"  # Use a test OSRID
-            db = Database(
-                test_osrid, retries=1, delay=1
-            )  # Quick test with minimal retries
+            test_osrid = "osr1"
+            db = Database(test_osrid, retries=1, delay=1)
 
             print("  📊 Testing database connection...", end=" ")
-            # Try to establish connection (this will fail gracefully if no DB available)
             try:
                 connection = db.connect()
                 if connection:
-                    connection.close()  # Close test connection
+                    connection.close()
                 print("✅ Database connection successful")
                 connection_results["database"] = True
             except Exception as conn_e:
@@ -299,11 +271,9 @@ def test_system_connections():
     except Exception as e:
         print(f"❌ Database test failed: {e}")
 
-    # Test CORBA/ORB connection
     try:
         print("  🔌 Testing CORBA ORB availability...", end=" ")
 
-        # Check if CORBA modules are available
         from models.order_sender import CORBA_AVAILABLE
 
         if CORBA_AVAILABLE:
@@ -313,7 +283,6 @@ def test_system_connections():
             try:
                 from omniORB import CORBA
 
-                # Try to initialize ORB (this is a basic test)
                 orb = CORBA.ORB_init([], CORBA.ORB_ID)
                 if orb:
                     print("✅ CORBA ORB initialization successful")
@@ -331,23 +300,18 @@ def test_system_connections():
     except Exception as e:
         print(f"❌ CORBA test failed: {e}")
 
-    # Test network connectivity (basic)
     try:
         print("  🌐 Testing network connectivity...", end=" ")
-        import socket
-
-        # Test basic network connectivity by trying to resolve a hostname
         socket.gethostbyname(socket.gethostname())
         print("✅ Network connectivity OK")
 
     except Exception as e:
         print(f"⚠️  Network connectivity issue: {e}")
 
-    # Test environment variables
     try:
         print("  🌍 Checking environment variables...", end=" ")
 
-        required_env_vars = ["PATH"]  # Basic required env var
+        required_env_vars = ["PATH"]
         optional_env_vars = ["OSR_ID", "ORACLE_HOME", "LD_LIBRARY_PATH"]
 
         missing_required = [var for var in required_env_vars if not os.environ.get(var)]
@@ -356,7 +320,6 @@ def test_system_connections():
         else:
             print("✅ Required environment variables OK")
 
-        # Report on optional vars
         for var in optional_env_vars:
             value = os.environ.get(var)
             if value:
@@ -367,7 +330,6 @@ def test_system_connections():
     except Exception as e:
         print(f"❌ Environment variable check failed: {e}")
 
-    # Summary
     print("\n📋 Connection Test Summary:")
     print(
         f"  Database: {'✅ Ready' if connection_results['database'] else '❌ Not available'}"
@@ -376,7 +338,6 @@ def test_system_connections():
         f"  CORBA:    {'✅ Ready' if connection_results['corba'] else '❌ Not available'}"
     )
 
-    # Determine overall status
     connection_results["overall"] = (
         connection_results["database"] or connection_results["corba"]
     )
@@ -399,17 +360,13 @@ def show_server_info():
     print("🖥️  Server Information")
     print("=" * 50)
 
-    # Basic system info
     print(f"Hostname: {socket.gethostname()}")
     print(f"Platform: {platform.system()} {platform.release()}")
     print(f"Architecture: {platform.machine()}")
     print(f"Python: {platform.python_version()}")
     print(f"Python Path: {sys.executable}")
-
-    # Current directory info
     print(f"Working Directory: {os.getcwd()}")
 
-    # Check for config files
     print("\n📁 Configuration Files:")
     config_files = [".orders_config.json", ".order_history.json"]
 
