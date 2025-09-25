@@ -16,30 +16,48 @@ from config.constants import Colors, Symbols
 
 
 def display_dialog(
-    stdscr, message: str, title: str = "Message", message_type: str = "info"
-) -> None:
-    """Display message dialog and wait for acknowledgment."""
+    stdscr,
+    message: str,
+    title: str = "Message",
+    message_type: str = "info",
+    show_yes_no: bool = False,
+) -> Optional[bool]:
+    """Display enhanced message dialog and wait for acknowledgment.
+
+    Args:
+        stdscr: The curses screen object
+        message: Message to display
+        title: Dialog title
+        message_type: Type of message (info, error, warning, success, question)
+        show_yes_no: If True, show Yes/No options and return True/False, otherwise return None
+
+    Returns:
+        None for regular messages, True/False for yes/no questions
+    """
     height, width = get_screen_size(stdscr)
     stdscr.clear()
 
     lines = message.split("\n")
     max_line_length = max(len(line) for line in lines) if lines else 0
-    message_width = min(width - 10, max(max_line_length + 6, 40))
-    message_height = len(lines) + 6
+    message_width = min(width - 10, max(max_line_length + 10, 50))
+    message_height = len(lines) + 8
 
     y_start = (height - message_height) // 2
     x_start = (width - message_width) // 2
 
-    # Determine styling based on message type
+    # Enhanced styling based on message type
     type_config = {
-        "error": (Colors.ERROR, Symbols.ERROR),
-        "success": (Colors.SUCCESS, Symbols.SUCCESS),
-        "warning": (Colors.WARNING, Symbols.WARNING),
-        "info": (Colors.INFO, Symbols.INFO),
+        "error": (Colors.ERROR, "X", "Error"),
+        "success": (Colors.SUCCESS, "✓", "Success"),
+        "warning": (Colors.WARNING, "!", "Warning"),
+        "info": (Colors.INFO, "i", "Information"),
+        "question": (Colors.INFO, "?", "Question"),
     }
-    color_pair, symbol = type_config.get(message_type, (Colors.INFO, Symbols.INFO))
+    color_pair, symbol, type_label = type_config.get(
+        message_type, (Colors.INFO, "i", "Information")
+    )
 
-    # Draw message box
+    # Draw enhanced message box
     display_title = f" {symbol} {title} "
     draw_border(
         stdscr,
@@ -48,31 +66,68 @@ def display_dialog(
         message_height,
         message_width,
         display_title,
-        Colors.BORDER,
+        Colors.HEADER,
     )
 
     try:
-        # Add message lines
+        # Type indicator
+        type_indicator = center_string(f"--- {type_label} ---", message_width - 4)
+        stdscr.addstr(
+            y_start + 2,
+            x_start + 2,
+            type_indicator,
+            curses.color_pair(color_pair) | curses.A_BOLD,
+        )
+
+        # Separator line
+        separator_y = y_start + 3
+        stdscr.addstr(
+            separator_y,
+            x_start + 1,
+            Symbols.HORIZONTAL_LINE * (message_width - 2),
+            curses.color_pair(Colors.BORDER),
+        )
+
+        # Add message lines with better spacing
         for i, line in enumerate(lines):
             line_text = center_string(line, message_width - 4)
             stdscr.addstr(
-                y_start + 2 + i, x_start + 2, line_text, curses.color_pair(color_pair)
+                y_start + 5 + i,
+                x_start + 2,
+                line_text,
+                curses.color_pair(Colors.TEXT) | curses.A_NORMAL,
             )
 
-        # Add instruction
-        instruction = f"{Symbols.KEY} Press any key to continue..."
+        # Enhanced instruction with visual prominence
+        if show_yes_no:
+            instruction = "[Y]es / [N]o"
+        else:
+            instruction = "Press any key to continue..."
         instruction_centered = center_string(instruction, message_width - 4)
         stdscr.addstr(
             y_start + message_height - 2,
             x_start + 2,
             instruction_centered,
-            curses.color_pair(Colors.INFO) | curses.A_DIM,
+            curses.color_pair(Colors.TEXT) | curses.A_BOLD,
         )
     except curses.error:
         pass
 
     stdscr.refresh()
-    stdscr.getch()
+
+    # Handle user input
+    if show_yes_no:
+        # Handle yes/no question
+        while True:
+            key = stdscr.getch()
+            if key in (ord("y"), ord("Y")):
+                return True
+            elif key in (ord("n"), ord("N"), 27):  # N or Escape
+                return False
+    else:
+        # Regular dialog - just wait for any key
+        stdscr.getch()
+        return None
 
 
 def prompt_input(
@@ -82,53 +137,72 @@ def prompt_input(
     height, width = get_screen_size(stdscr)
     stdscr.clear()
 
-    dialog_width = min(width - 10, max(60, len(prompt) + 10))
-    dialog_height = 8
+    dialog_width = min(width - 10, max(70, len(prompt) + 15))
+    dialog_height = 10
     dialog_x = (width - dialog_width) // 2
     dialog_y = (height - dialog_height) // 2
 
-    title = f" {Symbols.EDIT} Input Required "
+    title = " Input Required "
     draw_border(
-        stdscr, dialog_y, dialog_x, dialog_height, dialog_width, title, Colors.BORDER
+        stdscr, dialog_y, dialog_x, dialog_height, dialog_width, title, Colors.HEADER
     )
 
     try:
-        # Add prompt
+        # Enhanced prompt display
         prompt_text = truncate_text(prompt, dialog_width - 4)
         prompt_centered = center_string(prompt_text, dialog_width - 4)
         stdscr.addstr(
             dialog_y + 2,
             dialog_x + 2,
             prompt_centered,
-            curses.color_pair(Colors.HEADER) | curses.A_BOLD,
+            curses.color_pair(Colors.INFO) | curses.A_BOLD,
         )
 
-        # Input field
-        input_y = dialog_y + 4
-        input_x = dialog_x + 2
-        stdscr.addstr(input_y, input_x, "Input: ", curses.color_pair(Colors.TEXT))
+        # Separator line
+        separator_y = dialog_y + 3
+        stdscr.addstr(
+            separator_y,
+            dialog_x + 1,
+            Symbols.HORIZONTAL_LINE * (dialog_width - 2),
+            curses.color_pair(Colors.BORDER),
+        )
 
-        # Instructions
-        instructions = f"{Symbols.KEY} Enter to confirm • Ctrl+C to cancel"
+        # Enhanced input field with type indication
+        input_y = dialog_y + 5
+        input_x = dialog_x + 2
+        input_label = f"Value ({input_type.__name__}): "
+        stdscr.addstr(
+            input_y,
+            input_x,
+            input_label,
+            curses.color_pair(Colors.TEXT) | curses.A_BOLD,
+        )
+
+        # Enhanced instructions
+        instructions = "[Enter] Confirm • [Ctrl+C] Cancel"
         if allow_empty:
-            instructions += " • Leave empty for default"
+            instructions += " • [Empty] Use Default"
         instructions_centered = center_string(instructions, dialog_width - 4)
         stdscr.addstr(
-            dialog_y + 6,
+            dialog_y + 7,
             dialog_x + 2,
             instructions_centered,
-            curses.color_pair(Colors.INFO) | curses.A_DIM,
+            curses.color_pair(Colors.TEXT) | curses.A_BOLD,
         )
     except curses.error:
         pass
 
     stdscr.refresh()
 
-    # Get input
+    # Get input with better UX
     curses.echo()
     curses.curs_set(1)
     try:
-        user_input = stdscr.getstr(input_y, input_x + 7, 30).decode("utf-8").strip()
+        user_input = (
+            stdscr.getstr(input_y, input_x + len(input_label), 40)
+            .decode("utf-8")
+            .strip()
+        )
     except KeyboardInterrupt:
         return None
     finally:
@@ -138,13 +212,19 @@ def prompt_input(
     if not allow_empty and not user_input:
         return None
 
-    # Handle type conversion
+    # Handle type conversion with better error handling
     if user_input and input_type != str:
         try:
             return input_type(user_input)
         except (ValueError, TypeError):
-            # If conversion fails, return None to indicate invalid input
-            return None
+            # Show error message
+            display_dialog(
+                stdscr,
+                f"Invalid {input_type.__name__} value: '{user_input}'\nPlease enter a valid {input_type.__name__}.",
+                "Input Error",
+                "error",
+            )
+            return prompt_input(stdscr, prompt, allow_empty, input_type)
 
     return user_input if user_input or allow_empty else None
 
@@ -163,7 +243,7 @@ def process_keys(
         dialog_x = (width - dialog_width) // 2
         dialog_y = (height - dialog_height) // 2
 
-        title = f" {Symbols.EDIT} Input Required "
+        title = " Input Required "
         draw_border(
             stdscr,
             dialog_y,
@@ -192,7 +272,7 @@ def process_keys(
             stdscr.addstr(input_y, input_x, input_label, curses.color_pair(Colors.TEXT))
 
             # Instructions
-            instructions = f"{Symbols.KEY} Enter to confirm • Ctrl+C to cancel"
+            instructions = "Enter to confirm • Ctrl+C to cancel"
             if allow_empty:
                 instructions += " • Leave empty for default"
             instructions_centered = center_string(instructions, dialog_width - 4)

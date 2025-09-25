@@ -4,10 +4,11 @@ Configuration controller for managing application settings.
 
 import curses
 import os
+import time
 from typing import Dict, Any
 
 from models.config import Config
-from ui.utils import get_screen_size, draw_border, write_text
+from ui.utils import get_screen_size, draw_border, write_text, show_status
 from ui.dialog import display_dialog
 from config.constants import Colors, Symbols
 
@@ -26,8 +27,8 @@ class ConfigController:
         current_osrid = config.get("osr_id", os.environ.get("OSR_ID", ""))
 
         # Create dialog for OSR ID configuration
-        dialog_width = min(width - 8, 70)
-        dialog_height = 10
+        dialog_width = min(width - 8, 80)
+        dialog_height = 12
         dialog_x = (width - dialog_width) // 2
         dialog_y = (height - dialog_height) // 2
 
@@ -38,44 +39,32 @@ class ConfigController:
             dialog_x,
             dialog_height,
             dialog_width,
-            f"{Symbols.SETTINGS} Configure OSR ID ",
+            " Configure OSR ID ",
             Colors.BORDER,
         )
 
         try:
             # Show current OSR ID
-            current_label = f"{Symbols.INFO} Current OSR ID:"
+            info_text = "Current OSR ID: {}".format(current_osrid or "Not Set")
             write_text(
                 stdscr,
                 dialog_y + 2,
                 dialog_x + 2,
-                current_label,
+                info_text,
                 curses.color_pair(Colors.HEADER) | curses.A_BOLD,
             )
 
-            # Display current value
-            if current_osrid:
-                current_value = current_osrid
-                value_color = Colors.SUCCESS
-            else:
-                env_osrid = os.environ.get("OSR_ID", "")
-                if env_osrid:
-                    current_value = f"(environment: {env_osrid})"
-                    value_color = Colors.INFO
-                else:
-                    current_value = "(not configured)"
-                    value_color = Colors.WARNING
-
-            write_text(
-                stdscr,
-                dialog_y + 3,
-                dialog_x + 4,
-                current_value,
-                curses.color_pair(value_color),
+            # Separator line for visual separation
+            separator_y = dialog_y + 3
+            stdscr.addstr(
+                separator_y,
+                dialog_x + 1,
+                Symbols.HORIZONTAL_LINE * (dialog_width - 2),
+                curses.color_pair(Colors.BORDER),
             )
 
             # Input prompt
-            input_label = f"{Symbols.EDIT} Enter new OSR ID:"
+            input_label = "✎ Enter new OSR ID:"
             write_text(
                 stdscr,
                 dialog_y + 5,
@@ -84,13 +73,22 @@ class ConfigController:
                 curses.color_pair(Colors.TEXT),
             )
 
-            # Instructions
-            instructions = f"{Symbols.KEY} [ENTER] to save • [Ctrl+C] to cancel • Leave empty for environment"
+            # Separator line for visual separation
+            separator_y = dialog_y + 8
+            stdscr.addstr(
+                separator_y,
+                dialog_x + 1,
+                Symbols.HORIZONTAL_LINE * (dialog_width - 2),
+                curses.color_pair(Colors.BORDER),
+            )
+
+            instructions = "[ENTER] Save • [Ctrl+C] Cancel • Leave empty to use environment variable"
+
             write_text(
                 stdscr,
-                dialog_y + 7,
+                dialog_y + 9,
                 dialog_x + 2,
-                instructions[: dialog_width - 4],  # Truncate if too long
+                instructions,
                 curses.color_pair(Colors.INFO) | curses.A_DIM,
             )
 
@@ -126,21 +124,29 @@ class ConfigController:
             if new_osrid:
                 # Set new OSR ID in config
                 config["osr_id"] = new_osrid
-                success_msg = f"{Symbols.SUCCESS} OSR ID updated to: {new_osrid}"
+                success_msg = "✓ OSR ID updated to: {}".format(new_osrid)
                 msg_type = "success"
             else:
                 # Remove from config to use environment variable
                 config.pop("osr_id", None)
                 env_osrid = os.environ.get("OSR_ID", "")
                 if env_osrid:
-                    success_msg = f"{Symbols.SUCCESS} OSR ID cleared - now using environment: {env_osrid}"
+                    success_msg = "✓ OSR ID cleared - now using environment: {}".format(
+                        env_osrid
+                    )
                     msg_type = "success"
                 else:
-                    success_msg = f"{Symbols.WARNING} OSR ID cleared - environment variable OSR_ID not set!"
+                    success_msg = (
+                        "⚠ OSR ID cleared - environment variable OSR_ID not set!"
+                    )
                     msg_type = "warning"
 
             config_manager.save(config)
-            display_dialog(stdscr, success_msg, "Configuration", msg_type)
+
+            status_type = "success" if msg_type == "success" else "warning"
+            show_status(stdscr, success_msg, status_type)
+            stdscr.refresh()
+            time.sleep(2)  # Show status for 2 seconds
 
         except KeyboardInterrupt:
             # User cancelled with Ctrl+C

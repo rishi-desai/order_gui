@@ -117,17 +117,28 @@ def extract_order_id_from_xml(xml_content: str) -> str:
 
 
 def get_order_type_from_xml(xml_content: str) -> str:
-    """Extract order type from XML content."""
-    if "<pick_order" in xml_content:
-        return "pick"
-    elif "<goods_in_order" in xml_content:
-        if 'processing_mode="renewal"' in xml_content:
-            return "goods_add"
+    """Extract order type from XML content and return proper OrderMode constant."""
+    from config.constants import OrderMode
+
+    # Make order type detection more robust by checking for main order elements
+    # Check more specific patterns first, then more general ones
+    # Use space or > to ensure we're matching actual element starts
+
+    if "<transport_order " in xml_content or "<transport_order>" in xml_content:
+        return OrderMode.TRANSPORT
+    elif "<pick_order " in xml_content or "<pick_order>" in xml_content:
+        # Determine if it's standard or manual pick based on container presence
+        if "container_number=" in xml_content:
+            return OrderMode.PICK_STANDARD
         else:
-            return "goods_in"
-    elif "<inventory_order" in xml_content:
-        return "inventory"
-    elif "<transport_order" in xml_content:
-        return "transport"
+            return OrderMode.PICK_MANUAL
+    elif (
+        "<goods_in_order " in xml_content and 'processing_mode="renewal"' in xml_content
+    ):
+        return OrderMode.GOODS_ADD
+    elif "<goods_in_order " in xml_content or "<goods_in_order>" in xml_content:
+        return OrderMode.GOODS_IN
+    elif "<inventory_order " in xml_content or "<inventory_order>" in xml_content:
+        return OrderMode.INVENTORY
     else:
         return "unknown"

@@ -48,6 +48,31 @@ SERVER_TYPES = [
 ]
 
 
+class TransportProcessingMode:
+    """Enumeration of available transport order processing modes."""
+
+    STANDARD = "standard"
+    DISPATCH = "dispatch"
+    EMPTY_TRAY = "empty_tray"
+    FIRST_HIT_IN_SEQUENCE = "first_hit_in_sequence"
+
+
+TRANSPORT_PROCESSING_MODES = [
+    TransportProcessingMode.STANDARD,
+    TransportProcessingMode.DISPATCH,
+    TransportProcessingMode.EMPTY_TRAY,
+    TransportProcessingMode.FIRST_HIT_IN_SEQUENCE,
+]
+
+# User-friendly descriptions for transport processing modes
+TRANSPORT_MODE_DESCRIPTIONS = {
+    TransportProcessingMode.STANDARD: "Standard processing (default)",
+    TransportProcessingMode.DISPATCH: "Dispatch mode - for outbound orders",
+    TransportProcessingMode.EMPTY_TRAY: "Empty tray transport",
+    TransportProcessingMode.FIRST_HIT_IN_SEQUENCE: "First hit in sequence processing",
+}
+
+
 class Colors:
     """Color constants for terminal display."""
 
@@ -66,41 +91,20 @@ class Colors:
 class Symbols:
     """ASCII-safe symbols for universal terminal compatibility."""
 
-    # Navigation
+    # Navigation arrows
     ARROW_RIGHT = ">"
     ARROW_LEFT = "<"
     ARROW_UP = "^"
     ARROW_DOWN = "v"
 
-    # Status indicators
-    CHECK = "✓"
-    CROSS = "✗"
-    SUCCESS = "✓"
-    ERROR = "✗"
-    WARNING = "⚠"
-    INFO = "ⓘ"
-    TIME = "⧖"
-    INFO = "●"
-
-    # UI elements
-    BULLET = "•"
-    CONFIRM = "✓"
-    KEY = ">"
-    EDIT = "..."
-    SETTINGS = "⛭"
-
     # Selection boxes
-    BOX_EMPTY = "▢"
-    BOX_CHECKED = "▣"
-
-    # Navigation actions
-    BACK = "<"
-    REFRESH = "↻"
+    BOX_EMPTY = "[ ]"
+    BOX_CHECKED = "[*]"
 
     # Box drawing
     HORIZONTAL_LINE = "─"
     VERTICAL_LINE = "│"
-    TOP_LEFT = "┌"
-    TOP_RIGHT = "┐"
-    BOTTOM_LEFT = "└"
-    BOTTOM_RIGHT = "┘"
+    TOP_LEFT = "╭"
+    TOP_RIGHT = "╮"
+    BOTTOM_LEFT = "╰"
+    BOTTOM_RIGHT = "╯"

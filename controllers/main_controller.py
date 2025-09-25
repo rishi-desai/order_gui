@@ -3,6 +3,7 @@ Main application controller that orchestrates the GUI workflow.
 """
 
 import curses
+import time
 from typing import Dict, Any, List
 
 from models.config import Config
@@ -13,7 +14,7 @@ from models.order_sender import (
     get_order_type_from_xml,
 )
 from models.history import History
-from config.constants import ORDER_TYPES, OrderMode, SERVER_TYPES, ServerType, Symbols
+from config.constants import ORDER_TYPES, OrderMode, SERVER_TYPES, ServerType, Colors
 from config.defaults import FIELD_ORDER
 from ui.utils import (
     setup_colors,
@@ -21,6 +22,7 @@ from ui.utils import (
     write_text,
     center_string,
     draw_border,
+    show_status,
 )
 from ui.menu import display_menu, display_sectioned_menu
 from ui.dialog import display_dialog, prompt_input
@@ -134,15 +136,14 @@ class MainController:
             server_display = f"Server: {server_type}"
             status_info = f"{osrid_display} • {server_display}"
 
+            # Optimized menu with exactly 10 options for 0-9 shortcuts
             sections = {
-                f"Order Processing": ORDER_TYPES,
-                f"Order Management": [
+                "Order Types": ORDER_TYPES,
+                "Management": [
+                    "Edit Last Order",
                     "View Order History",
                     "Cancel Orders",
-                ],
-                f"Configuration": [
-                    "Configure OSR ID",
-                    "Configure Server Type",
+                    "Configure Settings",
                 ],
             }
 
@@ -156,6 +157,7 @@ class MainController:
                 sections=sections,
                 title="OSR Order GUI - Main Menu",
                 status_info=status_info,
+                instructions=f"[0-9] Select option • [Q] Quit • [R] Refresh",
             )
 
             if selected_idx is None:
@@ -163,25 +165,108 @@ class MainController:
 
             selected_mode = all_options[selected_idx]
 
-            # Handle menu selections
-            if selected_mode == "View Order History":
+            # Handle management options
+            if selected_mode == "Edit Last Order":
+                self._edit_last_order(stdscr, config)
+                continue
+            elif selected_mode == "View Order History":
                 self.history_controller.view_order_history_menu(stdscr, config)
                 continue
             elif selected_mode == "Cancel Orders":
                 self.history_controller.cancel_orders_menu(stdscr, config)
                 continue
-            elif selected_mode == "Configure OSR ID":
-                self.config_controller.configure_osr_id(
-                    stdscr, config, self.config_manager
-                )
-                continue
-            elif selected_mode == "Configure Server Type":
-                self._configure_server_type(stdscr, config)
+            elif selected_mode == "Configure Settings":
+                self._show_configuration_menu(stdscr, config)
                 continue
 
             # Handle order creation (if it's one of the ORDER_TYPES)
             if selected_mode in ORDER_TYPES:
                 self._handle_order_creation(stdscr, config, selected_mode)
+
+    def _show_configuration_menu(self, stdscr, config: Dict[str, Any]) -> None:
+        """Show configuration submenu."""
+
+        config_options = [
+            "Configure OSR ID",
+            "Configure Server Type",
+        ]
+
+        selected_idx = display_menu(
+            stdscr,
+            config_options,
+            title="Configuration Settings",
+            instructions="[0-9] Select option • [Q] Back to main menu",
+        )
+
+        if selected_idx is not None:
+            selected_option = config_options[selected_idx]
+
+            if selected_option == "Configure OSR ID":
+                self.config_controller.configure_osr_id(
+                    stdscr, config, self.config_manager
+                )
+            elif selected_option == "Configure Server Type":
+                self._configure_server_type(stdscr, config)
+
+    def _edit_last_order(self, stdscr, config: Dict[str, Any]) -> None:
+        """Edit the last order sent."""
+        from config.constants import Colors
+
+        # Get the last order from history
+        last_order = History.get_last_order()
+
+        if not last_order:
+            show_status(stdscr, "No previous orders found in history.", "info")
+            stdscr.refresh()
+            time.sleep(2)  # Show status for 2 seconds
+            return
+
+        order_type = last_order.get("order_type")
+        order_id = last_order.get("order_id", "Unknown")
+
+        if not order_type or order_type not in ORDER_TYPES:
+            display_dialog(
+                stdscr,
+                f"Cannot edit order of type: {order_type or 'Unknown'}",
+                "Unsupported Order Type",
+                "error",
+            )
+            return
+
+        # Load the order configuration and edit it
+        if order_type in config:
+            show_status(
+                stdscr,
+                f"Editing last order: {order_type} (ID: {last_order.get('order_id', 'Unknown')})",
+                "info",
+            )
+            stdscr.refresh()
+            time.sleep(1.5)  # Show status briefly
+            self._handle_order_creation(stdscr, config, order_type)
+        else:
+            # Initialize default config for this order type if it doesn't exist
+            from config.defaults import DEFAULT_ORDER_VALUES
+
+            if order_type in DEFAULT_ORDER_VALUES:
+                config[order_type] = DEFAULT_ORDER_VALUES[order_type]
+                self.config_manager.save(config)
+
+                show_status(
+                    stdscr,
+                    f"No saved config for {order_type}. Using defaults.",
+                    "warning",
+                )
+                stdscr.refresh()
+                time.sleep(1.5)  # Show status briefly
+                self._handle_order_creation(stdscr, config, order_type)
+            else:
+                display_dialog(
+                    stdscr,
+                    f"No default configuration found for order type: {order_type}",
+                    "Configuration Error",
+                    "error",
+                )
+                return
 
     def _configure_server_type(self, stdscr, config: Dict[str, Any]) -> None:
         """Configure server type setting."""
@@ -200,9 +285,11 @@ class MainController:
 
             message = f"Server type updated to: {SERVER_TYPES[selected_idx]}"
             if SERVER_TYPES[selected_idx] == ServerType.TEST:
-                message += "\n\nTest server mode enables sandbox command generation"
+                message += " (Test server mode enables sandbox command generation)"
 
-            display_dialog(stdscr, message, "Configuration Updated", "success")
+            show_status(stdscr, message, "success")
+            stdscr.refresh()
+            time.sleep(2)  # Show status for 2 seconds
 
     def _handle_order_creation(
         self, stdscr, config: Dict[str, Any], selected_mode: str
@@ -288,7 +375,6 @@ class MainController:
 
     def _confirm_and_send_order(self, stdscr, xml_content: str, config: Dict) -> None:
         """Confirm and send order with proper XML formatting."""
-        from config.constants import Colors, Symbols
 
         # Validate XML
         if xml_content is None:
@@ -348,7 +434,6 @@ class MainController:
 
     def _show_xml_confirmation_dialog(self, stdscr, xml_lines: List[str]) -> bool:
         """Show XML confirmation dialog and get user confirmation."""
-        from config.constants import Colors, Symbols
 
         height, width = get_screen_size(stdscr)
         stdscr.clear()
@@ -364,13 +449,13 @@ class MainController:
             dialog_x,
             dialog_height,
             dialog_width,
-            f" {Symbols.CONFIRM} Send Order Confirmation ",
+            " Send Order Confirmation ",
             Colors.BORDER,
         )
 
         try:
             # XML preview header
-            preview_text = f"{Symbols.EDIT} XML Preview:"
+            preview_text = "XML Preview:"
             write_text(
                 stdscr,
                 dialog_y + 2,
@@ -394,7 +479,7 @@ class MainController:
                     )
 
             # Warning message
-            warning = f"{Symbols.WARNING} This will send the order to the OSR system!"
+            warning = "This will send the order to the OSR system!"
             warning_centered = center_string(warning, dialog_width - 4)
             write_text(
                 stdscr,
@@ -405,9 +490,7 @@ class MainController:
             )
 
             # Instructions
-            instructions = (
-                f"{Symbols.KEY} [Y]es to send  {Symbols.BULLET}  [N]o to cancel"
-            )
+            instructions = "[Y]es to send • [N]o to cancel"
             instructions_centered = center_string(instructions, dialog_width - 4)
             write_text(
                 stdscr,
@@ -459,7 +542,9 @@ class MainController:
                 History.add_order(order_id, order_type, osrid, "sent")
                 success_msg = f"Order sent successfully!"
 
-            display_dialog(stdscr, success_msg, "Success", "success")
+            show_status(stdscr, success_msg, "success")
+            stdscr.refresh()
+            time.sleep(2)  # Show status for 2 seconds
 
             # Handle sandbox commands for test servers
             server_type = config.get("server_type", ServerType.LIVE)

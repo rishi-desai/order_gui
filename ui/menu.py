@@ -20,6 +20,7 @@ def display_sectioned_menu(
     sections: Dict[str, List[str]],
     title: str = "Menu",
     status_info: str = "",
+    instructions: str = None,
 ) -> Optional[int]:
     """
     Display a menu with sections for better organization.
@@ -29,6 +30,7 @@ def display_sectioned_menu(
         sections: Dict with section names as keys and option lists as values
         title: Menu title
         status_info: Additional status information to display
+        instructions: Custom instructions text
 
     Returns:
         Index of selected option (global index across all sections) or None
@@ -52,17 +54,22 @@ def display_sectioned_menu(
     while True:
         stdscr.clear()
 
-        # Calculate layout
-        box_width = min(width - 4, max(70, max(len(opt) for opt in all_options) + 15))
+        # Enhanced layout calculation
+        max_option_len = max(len(opt) for opt in all_options) if all_options else 30
+        max_section_len = (
+            max(len(section) for section in sections.keys()) if sections else 20
+        )
+
+        box_width = min(width - 6, max(80, max_option_len + 20, max_section_len + 15))
         sections_height = sum(
             len(opts) + 2 for opts in sections.values()
         )  # +2 for header and spacing
-        box_height = min(height - 4, sections_height + 6)
+        box_height = min(height - 4, sections_height + 8)
         box_x = (width - box_width) // 2
         box_y = (height - box_height) // 2
 
-        # Draw main container
-        draw_border(stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER)
+        # Draw main container with enhanced styling
+        draw_border(stdscr, box_y, box_x, box_height, box_width, title, Colors.HEADER)
 
         # Display status info in header area
         if status_info:
@@ -70,22 +77,31 @@ def display_sectioned_menu(
             status_text = center_string(status_info, box_width - 4)
             try:
                 stdscr.addstr(
-                    status_y, box_x + 2, status_text, curses.color_pair(Colors.INFO)
+                    status_y,
+                    box_x + 2,
+                    status_text,
+                    curses.color_pair(Colors.INFO) | curses.A_BOLD,
                 )
             except curses.error:
                 pass
 
-        # Draw sections
+        # Draw sections with enhanced styling
         current_y = box_y + 3 + (1 if status_info else 0)
         option_index = 0
 
         for section_name, options in sections.items():
-            # Section header
-            if current_y >= box_y + box_height - 2:
+            # Section header with your requested format
+            if current_y >= box_y + box_height - 3:
                 break
 
-            section_header = f"╭─ {section_name} "
-            section_header += "─" * max(0, box_width - len(section_header) - 6) + "╮"
+            # Create the header in format: ╭─ Section Name -------------------------╮
+            header_text = f" {section_name} "
+            # Account for the border symbols and spacing: TOP_LEFT + " " + TOP_RIGHT + padding
+            available_width = (
+                box_width - 4 - len(header_text) - 2
+            )  # -2 for the TOP_LEFT and TOP_RIGHT symbols
+            padding_dashes = max(0, available_width)
+            section_header = f"{Symbols.TOP_LEFT}{Symbols.HORIZONTAL_LINE} {section_name} {Symbols.HORIZONTAL_LINE * padding_dashes}{Symbols.TOP_RIGHT}"
 
             try:
                 stdscr.addstr(
@@ -98,15 +114,16 @@ def display_sectioned_menu(
                 pass
             current_y += 1
 
-            # Section options
+            # Section options with enhanced visual design
             for i, option in enumerate(options):
-                if current_y >= box_y + box_height - 2:
+                if current_y >= box_y + box_height - 3:
                     break
 
                 # Prepare option text with numbering (0-9)
                 option_num = option_index % 10
                 if option_index == current_row:
-                    display_text = f"  {Symbols.ARROW_RIGHT} {option_num}. {option}"
+                    # Enhanced selection display
+                    display_text = f"  {Symbols.ARROW_RIGHT} [{option_num}] {option}"
                     try:
                         stdscr.addstr(
                             current_y,
@@ -117,12 +134,19 @@ def display_sectioned_menu(
                     except curses.error:
                         pass
                 else:
-                    display_text = f"    {option_num}. {option}"
+                    display_text = f"     [{option_num}] {option}"
                     try:
+                        # Show number in different color for better visibility
                         stdscr.addstr(
                             current_y,
                             box_x + 2,
-                            display_text,
+                            f"     [{option_num}]",
+                            curses.color_pair(Colors.SUCCESS),
+                        )
+                        stdscr.addstr(
+                            current_y,
+                            box_x + 2 + len(f"     [{option_num}]"),
+                            f" {option}",
                             curses.color_pair(Colors.TEXT),
                         )
                     except curses.error:
@@ -134,18 +158,21 @@ def display_sectioned_menu(
             # Add spacing after section
             current_y += 1
 
-        # Instructions
+        # Enhanced instructions with custom support
         instructions_y = box_y + box_height - 2
-        instructions_text = center_string(
-            "↑↓ Navigate • 0-9 Quick select • Enter to choose • Q to quit",
-            box_width - 4,
-        )
+        if instructions:
+            instructions_text = center_string(instructions, box_width - 4)
+        else:
+            instructions_text = center_string(
+                f"{Symbols.ARROW_UP}/{Symbols.ARROW_DOWN} Navigate • [0-9] Quick Select • [Enter] Choose • [Q] Quit",
+                box_width - 4,
+            )
         try:
             stdscr.addstr(
                 instructions_y,
                 box_x + 2,
                 instructions_text,
-                curses.color_pair(Colors.INFO),
+                curses.color_pair(Colors.TEXT) | curses.A_BOLD,
             )
         except curses.error:
             pass
@@ -186,27 +213,29 @@ def display_menu(
     while True:
         stdscr.clear()
 
-        # Calculate box dimensions
+        # Calculate enhanced box dimensions
         extra_width = 6 if allow_multiple else 0
+        max_option_len = max(len(option) for option in options) if options else 20
         box_width = min(
-            width - 4,
-            max(60, max(len(option) for option in options) + 10 + extra_width),
+            width - 6,
+            max(70, max_option_len + 15 + extra_width),
         )
         box_height = min(height - 4, len(options) + 8)
         box_x = (width - box_width) // 2
         box_y = (height - box_height) // 2
 
-        # Draw main box
-        draw_border(stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER)
+        # Draw main box with enhanced styling
+        draw_border(stdscr, box_y, box_x, box_height, box_width, title, Colors.HEADER)
 
-        # Draw menu options
+        # Draw menu options with enhanced design
         option_start_y = box_y + 3
         for idx, option in enumerate(options):
             y_pos = option_start_y + idx
             if y_pos >= box_y + box_height - 3:
                 break
 
-            # Prepare option text
+            # Prepare option text with enhanced styling
+            option_num = idx % 10  # Support 0-9 numbering
             if allow_multiple:
                 checkbox = Symbols.BOX_CHECKED if idx in selected else Symbols.BOX_EMPTY
                 option_text = f"{checkbox} {option}"
@@ -214,56 +243,87 @@ def display_menu(
                 option_text = f"{option}"
 
             # Truncate if too long
-            max_option_width = box_width - 8
+            max_option_width = box_width - 12
             option_text = truncate_text(option_text, max_option_width)
 
-            # Draw option
+            # Draw option with better visual hierarchy
             if idx == current_row:
-                arrow = f"{Symbols.ARROW_RIGHT} "
-                full_text = arrow + option_text
+                # Enhanced selection display
+                if allow_multiple:
+                    display_text = (
+                        f"  {Symbols.ARROW_RIGHT} [{option_num}] {option_text}"
+                    )
+                else:
+                    display_text = (
+                        f"  {Symbols.ARROW_RIGHT} [{option_num}] {option_text}"
+                    )
                 try:
                     stdscr.addstr(
                         y_pos,
                         box_x + 2,
-                        full_text,
+                        display_text,
                         curses.color_pair(Colors.SELECTED) | curses.A_BOLD,
                     )
                 except curses.error:
                     pass
             else:
+                # Non-selected option with number highlighting
                 try:
+                    if allow_multiple:
+                        display_text = f"     [{option_num}] {option_text}"
+                    else:
+                        display_text = f"     [{option_num}] {option_text}"
+                    # Show number in different color
                     stdscr.addstr(
-                        y_pos, box_x + 4, option_text, curses.color_pair(Colors.TEXT)
+                        y_pos,
+                        box_x + 2,
+                        f"     [{option_num}]",
+                        curses.color_pair(Colors.SUCCESS),
+                    )
+                    stdscr.addstr(
+                        y_pos,
+                        box_x + 2 + len(f"     [{option_num}]"),
+                        f" {option_text}",
+                        curses.color_pair(Colors.TEXT),
                     )
                 except curses.error:
                     pass
 
-        # Draw instructions
+        # Draw enhanced instructions
         instructions_y = box_y + box_height - 2
         if allow_multiple:
             instructions_text = center_string(
-                f"{Symbols.KEY} Space to toggle • Enter to finish • Q to quit",
+                f"[Space] Toggle • [0-9] Quick Select • [Enter] Finish • [Q] Quit",
                 box_width - 4,
             )
         else:
-            instructions_text = center_string(instructions, box_width - 4)
+            instructions_text = center_string(
+                f"{Symbols.ARROW_UP}/{Symbols.ARROW_DOWN} Navigate • [0-9] Quick Select • [Enter] Choose • [Q] Quit",
+                box_width - 4,
+            )
         try:
             stdscr.addstr(
                 instructions_y,
                 box_x + 2,
                 instructions_text,
-                curses.color_pair(Colors.INFO),
+                curses.color_pair(Colors.TEXT) | curses.A_BOLD,
             )
         except curses.error:
             pass
 
-        # Status bar
+        # Enhanced status bar
         if allow_multiple:
             show_status(
-                stdscr, f"Selected: {len(selected)} items • Use Space to toggle", "info"
+                stdscr,
+                f"Selected: {len(selected)} items • Use Space to toggle selection",
+                "info",
             )
         else:
-            show_status(stdscr, "Navigate with arrow keys, Enter to select", "info")
+            show_status(
+                stdscr,
+                "Navigate with arrow keys or number keys, Enter to select",
+                "info",
+            )
 
         stdscr.refresh()
 

@@ -14,7 +14,6 @@ from ui.utils import (
     show_status,
     truncate_text,
     center_string,
-    write_text,
 )
 from ui.form import edit_form
 
@@ -35,7 +34,7 @@ class OrderController:
         while True:
             stdscr.clear()
 
-            # Calculate box dimensions
+            # Enhanced dynamic box sizing based on content
             max_line_len = (
                 max(
                     len(
@@ -46,32 +45,40 @@ class OrderController:
                 if lines
                 else 40
             )
-            box_width = min(width - 4, max(70, max_line_len + 10))
-            box_height = min(height - 4, len(lines) + 10)
+
+            # Calculate minimum width for instructions to prevent truncation
+            instructions = f"{Symbols.ARROW_UP}/{Symbols.ARROW_DOWN} Navigate • [A]dd • [D]elete • [Enter] Edit • [S]end • [B]ack"
+            min_width = max(len(instructions) + 8, max_line_len + 20, 80)
+
+            box_width = min(width - 6, max(min_width, 100))  # Ensure adequate width
+            box_height = min(
+                height - 4, len(lines) + 12
+            )  # More space for better layout
             box_x = (width - box_width) // 2
             box_y = (height - box_height) // 2
 
-            # Draw main box
-            title = f" {Symbols.EDIT} Editing {mode} Lines "
+            # Enhanced main box with better styling
+            # Enhanced title for order editor
+            title = f" {mode} Order Editor "
             draw_border(
-                stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER
+                stdscr, box_y, box_x, box_height, box_width, title, Colors.HEADER
             )
 
             try:
-                # Instructions header
-                instructions = f"{Symbols.ARROW_UP}/{Symbols.ARROW_DOWN} Navigate • [A]dd • [D]elete • [Enter] Edit • [S]ave • [B]ack"
+                # Enhanced instructions with guaranteed visibility
+                instructions_y = box_y + 2
                 instructions_truncated = truncate_text(instructions, box_width - 4)
                 instructions_centered = center_string(
                     instructions_truncated, box_width - 4
                 )
                 stdscr.addstr(
-                    box_y + 2,
+                    instructions_y,
                     box_x + 2,
                     instructions_centered,
-                    curses.color_pair(Colors.SECTION_HEADER) | curses.A_DIM,
+                    curses.color_pair(Colors.SUCCESS) | curses.A_BOLD,
                 )
 
-                # Separator line
+                # Visual separator for better organization
                 separator_y = box_y + 3
                 stdscr.addstr(
                     separator_y,
@@ -80,52 +87,107 @@ class OrderController:
                     curses.color_pair(Colors.BORDER),
                 )
 
-                # Display lines
-                lines_start_y = box_y + 5
-                for i, line in enumerate(lines):
-                    if lines_start_y + i >= box_y + box_height - 3:
-                        break  # Don't overflow
+                # Order summary with key metrics
+                summary_y = box_y + 4
+                # Get order number from the first values entry if available
+                order_number = values[0].get("Order Number", "N/A") if values else "N/A"
+                order_info = (
+                    f"Order: {order_number} • Lines: {len(lines)} • Type: {mode}"
+                )
+                order_info_truncated = truncate_text(order_info, box_width - 4)
+                order_info_centered = center_string(order_info_truncated, box_width - 4)
+                stdscr.addstr(
+                    summary_y,
+                    box_x + 2,
+                    order_info_centered,
+                    curses.color_pair(Colors.INFO) | curses.A_BOLD,
+                )
 
-                    line_str = "{} ({}), Qty: {}".format(
-                        line.get("Product Name", "N/A"),
-                        line.get("Product Code", "N/A"),
-                        line.get("Quantity", "N/A"),
-                    )
-                    line_str = truncate_text(line_str, box_width - 8)
+                # Display lines
+                lines_start_y = box_y + 6  # More space after summary
+                for i, line in enumerate(lines):
+                    if (
+                        lines_start_y + i >= box_y + box_height - 4
+                    ):  # Leave more space for footer
+                        break
+
+                    # Enhanced line display with better information hierarchy
+                    line_num = f"{i + 1:2d}"
+                    product_name = line.get("Product Name", "N/A")
+                    product_code = line.get("Product Code", "N/A")
+                    quantity = line.get("Quantity", "N/A")
+                    destination = line.get("Destination", "")
+
+                    # More informative line display
+                    if destination:
+                        line_str = f"{product_name} ({product_code}) → {destination}, Qty: {quantity}"
+                    else:
+                        line_str = f"{product_name} ({product_code}), Qty: {quantity}"
+
+                    line_str = truncate_text(line_str, box_width - 12)
 
                     if i == idx:
-                        # Highlighted line
-                        arrow_text = f"{Symbols.ARROW_RIGHT} {line_str}"
-                        stdscr.addstr(
-                            lines_start_y + i,
-                            box_x + 2,
-                            arrow_text,
-                            curses.color_pair(Colors.SELECTED) | curses.A_BOLD,
-                        )
+                        # Enhanced highlighting for selected line
+                        try:
+                            stdscr.addstr(
+                                lines_start_y + i,
+                                box_x + 2,
+                                f"{Symbols.ARROW_RIGHT}",
+                                curses.color_pair(Colors.SELECTED) | curses.A_BOLD,
+                            )
+                            stdscr.addstr(
+                                lines_start_y + i,
+                                box_x + 4,
+                                line_num,
+                                curses.color_pair(Colors.SELECTED) | curses.A_BOLD,
+                            )
+                            stdscr.addstr(
+                                lines_start_y + i,
+                                box_x + 7,
+                                f". {line_str}",
+                                curses.color_pair(Colors.WARNING) | curses.A_BOLD,
+                            )
+                        except curses.error:
+                            pass
                     else:
-                        # Normal line
-                        stdscr.addstr(
-                            lines_start_y + i,
-                            box_x + 4,
-                            line_str,
-                            curses.color_pair(Colors.TEXT),
-                        )
+                        # Normal line with subtle hierarchy
+                        try:
+                            stdscr.addstr(
+                                lines_start_y + i,
+                                box_x + 4,
+                                line_num,
+                                curses.color_pair(Colors.INFO),
+                            )
+                            stdscr.addstr(
+                                lines_start_y + i,
+                                box_x + 7,
+                                f". {line_str}",
+                                curses.color_pair(Colors.TEXT),
+                            )
+                        except curses.error:
+                            pass
 
-                # Status info
-                status_y = box_y + box_height - 2
-                status_text = (
-                    f"Line {idx + 1} of {len(lines)} • {len(lines)} total lines"
+                # Enhanced status footer with more useful information
+                footer_y = box_y + box_height - 3
+                # Separator line
+                stdscr.addstr(
+                    footer_y - 1,
+                    box_x + 1,
+                    Symbols.HORIZONTAL_LINE * (box_width - 2),
+                    curses.color_pair(Colors.BORDER),
                 )
+
+                status_text = f"Line {idx + 1} of {len(lines)} selected • Total Lines: {len(lines)}"
                 status_centered = center_string(status_text, box_width - 4)
                 stdscr.addstr(
-                    status_y, box_x + 2, status_centered, curses.color_pair(Colors.INFO)
+                    footer_y,
+                    box_x + 2,
+                    status_centered,
+                    curses.color_pair(Colors.SUCCESS) | curses.A_BOLD,
                 )
 
             except curses.error:
                 pass
-
-            # Create status bar
-            show_status(stdscr, f"Editing {mode} • Use arrow keys to navigate", "info")
 
             stdscr.refresh()
 
@@ -172,7 +234,9 @@ class OrderController:
         fields += [f for f in line if f not in fields]  # fallback for any extra fields
 
         # Use the generalized field navigation and editing function
-        updated_values = edit_form(stdscr, fields, line, title=f"Edit {mode} Line")
+        updated_values = edit_form(
+            stdscr, fields, line, title=f"Edit {mode} Line", enable_db_lookup=True
+        )
         if updated_values is not None:
             line.update(updated_values)  # Update only the changed fields
             return None  # Continue editing
@@ -190,7 +254,7 @@ class OrderController:
         while True:
             stdscr.clear()
 
-            # Calculate box dimensions
+            # Enhanced dynamic box sizing for transport orders
             max_line_len = (
                 max(
                     len(
@@ -201,35 +265,40 @@ class OrderController:
                 if lines
                 else 60
             )
-            box_width = min(width - 4, max(80, max_line_len + 10))
-            box_height = min(height - 4, len(lines) + 10)
+
+            # Calculate minimum width for transport instructions
+            instructions = f"{Symbols.ARROW_UP}/{Symbols.ARROW_DOWN} Navigate • [A]dd Slot • [D]elete • [Enter] Edit • [S]end • [B]ack"
+            min_width = max(len(instructions) + 8, max_line_len + 20, 90)
+
+            box_width = min(
+                width - 6, max(min_width, 110)
+            )  # Wider for transport complexity
+            box_height = min(height - 4, len(lines) + 12)
             box_x = (width - box_width) // 2
             box_y = (height - box_height) // 2
 
-            # Draw main box with title
+            # Enhanced transport box with better title
             container_num = lines[0].get("Container Number", "N/A") if lines else "N/A"
-            title = (
-                f" {Symbols.EDIT} Editing Transport Order - Container {container_num} "
-            )
+            title = f" Transport Order Editor - Container {container_num} "
             draw_border(
-                stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER
+                stdscr, box_y, box_x, box_height, box_width, title, Colors.HEADER
             )
 
             try:
-                # Instructions header
-                instructions = f"{Symbols.ARROW_UP}/{Symbols.ARROW_DOWN} Navigate • [A]dd Slot • [D]elete • [Enter] Edit • [S]ave • [B]ack"
+                # Enhanced instructions with guaranteed visibility
+                instructions_y = box_y + 2
                 instructions_truncated = truncate_text(instructions, box_width - 4)
                 instructions_centered = center_string(
                     instructions_truncated, box_width - 4
                 )
                 stdscr.addstr(
-                    box_y + 2,
+                    instructions_y,
                     box_x + 2,
                     instructions_centered,
-                    curses.color_pair(Colors.SECTION_HEADER) | curses.A_DIM,
+                    curses.color_pair(Colors.SUCCESS) | curses.A_BOLD,
                 )
 
-                # Separator line
+                # Visual separator
                 separator_y = box_y + 3
                 stdscr.addstr(
                     separator_y,
@@ -238,18 +307,28 @@ class OrderController:
                     curses.color_pair(Colors.BORDER),
                 )
 
-                # Transport order summary info (compact)
+                # Transport summary with key information
+                summary_y = box_y + 4
+                processing_mode = (
+                    lines[0].get("Processing Mode", "standard") if lines else "standard"
+                )
                 if lines:
-                    order_summary = f"Order: {lines[0].get('Order Number', 'N/A')} • Owner: {lines[0].get('Owner', 'N/A')} → {lines[0].get('New Owner', 'N/A')} • Zone: {lines[0].get('Target Zone', 'N/A')}"
-                    order_summary = truncate_text(order_summary, box_width - 4)
-                    stdscr.addstr(
-                        box_y + 4,
-                        box_x + 2,
-                        order_summary,
-                        curses.color_pair(Colors.INFO) | curses.A_DIM,
+                    summary_info = f"Container: {container_num} • Slots: {len(lines)} • Mode: {processing_mode}"
+                else:
+                    summary_info = (
+                        f"Transport Order • Mode: {processing_mode} • No slots defined"
                     )
 
-                # Display slot lines
+                summary_centered = center_string(summary_info, box_width - 4)
+                stdscr.addstr(
+                    summary_y,
+                    box_x + 2,
+                    summary_centered,
+                    curses.color_pair(Colors.INFO) | curses.A_BOLD,
+                )
+
+                # Display slot lines with enhanced formatting
+                slots_start_y = box_y + 6
                 lines_start_y = box_y + 6
                 for i, line in enumerate(lines):
                     if lines_start_y + i >= box_y + box_height - 3:
@@ -337,7 +416,7 @@ class OrderController:
                     stdscr.refresh()
                     time.sleep(0.5)
             elif key in (curses.KEY_ENTER, 10, 13, ord("l")):  # Enter
-                result = self._edit_transport_slot(stdscr, lines[idx], mode)
+                result = self._edit_transport_slot(stdscr, lines[idx], mode, lines)
                 if result is True:
                     return True
             elif key == ord("s") or key == ord("S"):
@@ -346,12 +425,19 @@ class OrderController:
                 return False  # Back
 
     def _edit_transport_slot(
-        self, stdscr, slot: Dict, mode: Optional[str] = None
+        self,
+        stdscr,
+        slot: Dict,
+        mode: Optional[str] = None,
+        all_lines: List[Dict] = None,
     ) -> Optional[bool]:
         """Edit a single slot in the transport order with database lookups."""
         from config.constants import OrderMode
 
         fields = FIELD_ORDER.get(OrderMode.TRANSPORT, [])
+
+        # Store original processing mode to detect changes
+        original_processing_mode = slot.get("Processing Mode")
 
         # Use the enhanced form with database lookup enabled
         updated_values = edit_form(
@@ -362,325 +448,57 @@ class OrderController:
             enable_db_lookup=True,
         )
         if updated_values is not None:
-            slot.update(updated_values)  # Update only the changed fields
+            # Check if processing mode was changed and apply to all slots
+            new_processing_mode = updated_values.get("Processing Mode")
+            if (
+                all_lines
+                and new_processing_mode
+                and new_processing_mode != original_processing_mode
+            ):
+                # Apply new processing mode to all slots
+                for line in all_lines:
+                    line["Processing Mode"] = new_processing_mode
+                show_status(
+                    stdscr,
+                    f"Processing mode '{new_processing_mode}' applied to all slots",
+                    "success",
+                )
+                stdscr.refresh()
+                time.sleep(0.8)
+            else:
+                slot.update(updated_values)  # Update only the changed fields
             return None  # Continue editing
         return None
 
     def edit_inventory_order(self, stdscr, mode: str, values: Dict) -> bool:
         """Edit inventory order with enhanced UI."""
-        height, width = get_screen_size(stdscr)
+        from config.constants import Colors, Symbols
 
-        while True:
-            stdscr.clear()
-
-            # Calculate box dimensions
-            max_field_len = (
-                max(len(field) for field in FIELD_ORDER.get(mode, []))
-                if FIELD_ORDER.get(mode)
-                else 20
-            )
-            max_value_len = (
-                max(
-                    len(str(values.get(field, "")))
-                    for field in FIELD_ORDER.get(mode, [])
-                )
-                if FIELD_ORDER.get(mode)
-                else 20
-            )
-            box_width = min(width - 4, max(70, max_field_len + max_value_len + 15))
-            box_height = min(height - 4, 12)
-            box_x = (width - box_width) // 2
-            box_y = (height - box_height) // 2
-
-            # Draw main box with title
-            title = f" {Symbols.EDIT} Editing Inventory Order "
-            draw_border(
-                stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER
-            )
-
-            try:
-                # Instructions header
-                instructions = (
-                    "[Enter] Edit Fields • [S]ave • [B]ack • [D] Database Lookup"
-                )
-                instructions_truncated = truncate_text(instructions, box_width - 4)
-                instructions_centered = center_string(
-                    instructions_truncated, box_width - 4
-                )
-                stdscr.addstr(
-                    box_y + 2,
-                    box_x + 2,
-                    instructions_centered,
-                    curses.color_pair(Colors.SECTION_HEADER) | curses.A_DIM,
-                )
-
-                # Separator line
-                separator_y = box_y + 3
-                stdscr.addstr(
-                    separator_y,
-                    box_x + 1,
-                    Symbols.HORIZONTAL_LINE * (box_width - 2),
-                    curses.color_pair(Colors.BORDER),
-                )
-
-                # Order summary
-                order_summary = f"Container: {values.get('Container / Tray Number', 'N/A')} • Product: {values.get('Product Code', 'N/A')}"
-                order_summary = truncate_text(order_summary, box_width - 4)
-                stdscr.addstr(
-                    box_y + 5,
-                    box_x + 2,
-                    order_summary,
-                    curses.color_pair(Colors.HEADER) | curses.A_BOLD,
-                )
-
-                # Status info
-                status_y = box_y + box_height - 2
-                status_text = f"Inventory Order #{values.get('Order Number', 'N/A')}"
-                status_centered = center_string(status_text, box_width - 4)
-                stdscr.addstr(
-                    status_y, box_x + 2, status_centered, curses.color_pair(Colors.INFO)
-                )
-
-            except curses.error:
-                pass
-
-            # Create status bar
-            show_status(
-                stdscr, f"Editing Inventory Order • Press Enter to edit fields", "info"
-            )
-
-            stdscr.refresh()
-            key = stdscr.getch()
-
-            if key in (curses.KEY_ENTER, 10, 13, ord("l")):  # Enter
-                # Edit all fields
-                fields = FIELD_ORDER.get(mode, list(values.keys()))
-                updated_values = edit_form(
-                    stdscr,
-                    fields,
-                    values,
-                    title=f"Edit {mode} Order",
-                    enable_db_lookup=True,
-                )
-                if updated_values is not None:
-                    values.update(updated_values)
-            elif key == ord("s") or key == ord("S"):
-                return True  # Save/send
-            elif key in (ord("h"), ord("b"), ord("B")):
-                return False  # Back
+        # Use the enhanced form editor for consistent UI
+        fields = FIELD_ORDER.get(mode, list(values.keys()))
+        result = edit_form(
+            stdscr, fields, values, title=f"Edit {mode} Order", enable_db_lookup=True
+        )
+        return result is not None
 
     def edit_goods_in_order(self, stdscr, mode: str, values: Dict) -> bool:
         """Edit goods-in order with enhanced UI."""
-        height, width = get_screen_size(stdscr)
+        from config.constants import Colors, Symbols
 
-        while True:
-            stdscr.clear()
-
-            # Calculate box dimensions
-            max_field_len = (
-                max(len(field) for field in FIELD_ORDER.get(mode, []))
-                if FIELD_ORDER.get(mode)
-                else 20
-            )
-            max_value_len = (
-                max(
-                    len(str(values.get(field, "")))
-                    for field in FIELD_ORDER.get(mode, [])
-                )
-                if FIELD_ORDER.get(mode)
-                else 20
-            )
-            box_width = min(width - 4, max(70, max_field_len + max_value_len + 15))
-            box_height = min(height - 4, 14)
-            box_x = (width - box_width) // 2
-            box_y = (height - box_height) // 2
-
-            # Draw main box with title
-            title = f" {Symbols.EDIT} Editing Goods-In Order "
-            draw_border(
-                stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER
-            )
-
-            try:
-                # Instructions header
-                instructions = (
-                    "[Enter] Edit Fields • [S]ave • [B]ack • [D] Database Lookup"
-                )
-                instructions_truncated = truncate_text(instructions, box_width - 4)
-                instructions_centered = center_string(
-                    instructions_truncated, box_width - 4
-                )
-                stdscr.addstr(
-                    box_y + 2,
-                    box_x + 2,
-                    instructions_centered,
-                    curses.color_pair(Colors.SECTION_HEADER) | curses.A_DIM,
-                )
-
-                # Separator line
-                separator_y = box_y + 3
-                stdscr.addstr(
-                    separator_y,
-                    box_x + 1,
-                    Symbols.HORIZONTAL_LINE * (box_width - 2),
-                    curses.color_pair(Colors.BORDER),
-                )
-
-                # Order summary
-                order_summary = f"Container: {values.get('Container / Tray Number', 'N/A')} • Type: {values.get('Container Type', 'N/A')}"
-                order_summary = truncate_text(order_summary, box_width - 4)
-                stdscr.addstr(
-                    box_y + 5,
-                    box_x + 2,
-                    order_summary,
-                    curses.color_pair(Colors.HEADER) | curses.A_BOLD,
-                )
-
-                # Product info
-                product_info = f"Product: {values.get('Product Name', 'N/A')} ({values.get('Product Code', 'N/A')}) • Qty: {values.get('Quantity', 'N/A')}"
-                product_info = truncate_text(product_info, box_width - 4)
-                stdscr.addstr(
-                    box_y + 6,
-                    box_x + 2,
-                    product_info,
-                    curses.color_pair(Colors.INFO),
-                )
-
-                # Status info
-                status_y = box_y + box_height - 2
-                status_text = f"Goods-In Order #{values.get('Order Number', 'N/A')}"
-                status_centered = center_string(status_text, box_width - 4)
-                stdscr.addstr(
-                    status_y, box_x + 2, status_centered, curses.color_pair(Colors.INFO)
-                )
-
-            except curses.error:
-                pass
-
-            # Create status bar
-            show_status(
-                stdscr, f"Editing Goods-In Order • Press Enter to edit fields", "info"
-            )
-
-            stdscr.refresh()
-            key = stdscr.getch()
-
-            if key in (curses.KEY_ENTER, 10, 13, ord("l")):  # Enter
-                # Edit all fields
-                fields = FIELD_ORDER.get(mode, list(values.keys()))
-                updated_values = edit_form(
-                    stdscr,
-                    fields,
-                    values,
-                    title=f"Edit {mode} Order",
-                    enable_db_lookup=True,
-                )
-                if updated_values is not None:
-                    values.update(updated_values)
-            elif key == ord("s") or key == ord("S"):
-                return True  # Save/send
-            elif key in (ord("h"), ord("b"), ord("B")):
-                return False  # Back
+        # Use the enhanced form editor for consistent UI
+        fields = FIELD_ORDER.get(mode, list(values.keys()))
+        result = edit_form(
+            stdscr, fields, values, title=f"Edit {mode} Order", enable_db_lookup=True
+        )
+        return result is not None
 
     def edit_goods_add_order(self, stdscr, mode: str, values: Dict) -> bool:
         """Edit goods-add order with enhanced UI."""
-        height, width = get_screen_size(stdscr)
+        from config.constants import Colors, Symbols
 
-        while True:
-            stdscr.clear()
-
-            # Calculate box dimensions
-            max_field_len = (
-                max(len(field) for field in FIELD_ORDER.get(mode, []))
-                if FIELD_ORDER.get(mode)
-                else 20
-            )
-            max_value_len = (
-                max(
-                    len(str(values.get(field, "")))
-                    for field in FIELD_ORDER.get(mode, [])
-                )
-                if FIELD_ORDER.get(mode)
-                else 20
-            )
-            box_width = min(width - 4, max(70, max_field_len + max_value_len + 15))
-            box_height = min(height - 4, 12)
-            box_x = (width - box_width) // 2
-            box_y = (height - box_height) // 2
-
-            # Draw main box with title
-            title = f" {Symbols.EDIT} Editing Goods-Add Order "
-            draw_border(
-                stdscr, box_y, box_x, box_height, box_width, title, Colors.BORDER
-            )
-
-            try:
-                # Instructions header
-                instructions = (
-                    "[Enter] Edit Fields • [S]ave • [B]ack • [D] Database Lookup"
-                )
-                instructions_truncated = truncate_text(instructions, box_width - 4)
-                instructions_centered = center_string(
-                    instructions_truncated, box_width - 4
-                )
-                stdscr.addstr(
-                    box_y + 2,
-                    box_x + 2,
-                    instructions_centered,
-                    curses.color_pair(Colors.SECTION_HEADER) | curses.A_DIM,
-                )
-
-                # Separator line
-                separator_y = box_y + 3
-                stdscr.addstr(
-                    separator_y,
-                    box_x + 1,
-                    Symbols.HORIZONTAL_LINE * (box_width - 2),
-                    curses.color_pair(Colors.BORDER),
-                )
-
-                # Order summary
-                order_summary = f"Product: {values.get('Product Name', 'N/A')} ({values.get('Product Code', 'N/A')}) • Qty: {values.get('Quantity', 'N/A')}"
-                order_summary = truncate_text(order_summary, box_width - 4)
-                stdscr.addstr(
-                    box_y + 5,
-                    box_x + 2,
-                    order_summary,
-                    curses.color_pair(Colors.HEADER) | curses.A_BOLD,
-                )
-
-                # Status info
-                status_y = box_y + box_height - 2
-                status_text = f"Goods-Add Order #{values.get('Order Number', 'N/A')}"
-                status_centered = center_string(status_text, box_width - 4)
-                stdscr.addstr(
-                    status_y, box_x + 2, status_centered, curses.color_pair(Colors.INFO)
-                )
-
-            except curses.error:
-                pass
-
-            # Create status bar
-            show_status(
-                stdscr, f"Editing Goods-Add Order • Press Enter to edit fields", "info"
-            )
-
-            stdscr.refresh()
-            key = stdscr.getch()
-
-            if key in (curses.KEY_ENTER, 10, 13, ord("l")):  # Enter
-                # Edit all fields
-                fields = FIELD_ORDER.get(mode, list(values.keys()))
-                updated_values = edit_form(
-                    stdscr,
-                    fields,
-                    values,
-                    title=f"Edit {mode} Order",
-                    enable_db_lookup=True,
-                )
-                if updated_values is not None:
-                    values.update(updated_values)
-            elif key == ord("s") or key == ord("S"):
-                return True  # Save/send
-            elif key in (ord("h"), ord("b"), ord("B")):
-                return False  # Back
+        # Use the enhanced form editor for consistent UI
+        fields = FIELD_ORDER.get(mode, list(values.keys()))
+        result = edit_form(
+            stdscr, fields, values, title=f"Edit {mode} Order", enable_db_lookup=True
+        )
+        return result is not None

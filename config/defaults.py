@@ -60,6 +60,7 @@ DEFAULT_ORDER_VALUES = {
             "Quantity": "10",
             "Product Code": "test01",
             "Product Name": "Test-Product-1",
+            "Processing Mode": "standard",
         }
     ],
 }
@@ -109,6 +110,7 @@ FIELD_ORDER = {
         "Product Code",
         "Product Name",
         "Target Zone",
+        "Processing Mode",
         "Container Type",
         "Compartment Type",
         "New Owner",
@@ -166,7 +168,7 @@ XML_TEMPLATES = {
     """,
     OrderMode.TRANSPORT: """
     <host2osr>
-        <transport_order order_number="{name}-transport-{Order Number}" processing_mode="standard" preannouncement="true" new_owner="{New Owner}" requires_route_assistance="false">
+        <transport_order order_number="{name}-transport-{Order Number}" processing_mode="{Processing Mode}" preannouncement="true" new_owner="{New Owner}" requires_route_assistance="false">
             <transport_order_line target_zone="{Target Zone}"/>
             <container container_number="{Container Number}" container_type="{Container Type}" compartment_type="{Compartment Type}" owner="{Owner}">
                 {slot_contents}

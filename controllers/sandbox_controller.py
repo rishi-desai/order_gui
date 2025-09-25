@@ -4,7 +4,7 @@ Sandbox controller for test server operations.
 
 from typing import Dict, Any
 
-from models.sandbox_commands import SandboxCommandGenerator, copy_to_clipboard
+from models.sandbox_commands import SandboxCommandGenerator
 from ui.menu import display_menu
 from ui.dialog import display_dialog, prompt_input
 from config.constants import ServerType
@@ -21,19 +21,18 @@ class SandboxController:
     ) -> None:
         """Handle sandbox operations after order is sent."""
         options = [
-            "Show insertion command",
-            "Show all commands",
             "Skip sandbox operations",
+            "Show sandbox commands",
         ]
 
         selected_idx = display_menu(
             stdscr,
             options,
             title="Test Server - Sandbox Operations",
-            instructions="Choose how to handle carrier insertion",
+            instructions="↑↓ Navigate • 0-9 Quick select • Enter to choose • Q to quit",
         )
 
-        if selected_idx is None or selected_idx == 2:
+        if selected_idx is None or selected_idx == 0:
             return
 
         # Get element from user input (always require manual entry)
@@ -46,10 +45,8 @@ class SandboxController:
             xml_content, element
         )
 
-        if selected_idx == 0:
-            self._show_and_copy_command(stdscr, commands.get("insert_now", ""))
-        elif selected_idx == 1:
-            self._show_all_commands(stdscr, commands)
+        # Always show all commands since user will manually copy
+        self._show_all_commands(stdscr, commands)
 
     def handle_order_history(self, stdscr, order: Dict) -> None:
         """Handle sandbox commands for order from history."""
@@ -61,8 +58,7 @@ class SandboxController:
             return
 
         options = [
-            "Show insertion command",
-            "Show all commands",
+            "Show sandbox commands",
             "Back",
         ]
 
@@ -70,10 +66,10 @@ class SandboxController:
             stdscr,
             options,
             title=f"Sandbox Commands for Order {order_id}",
-            instructions="Select action",
+            instructions="↑↓ Navigate • 0-9 Quick select • Enter to choose • Q to quit",
         )
 
-        if selected_idx is None or selected_idx == 2:
+        if selected_idx is None or selected_idx == 1:
             return
 
         # Always get element from user input
@@ -95,23 +91,8 @@ class SandboxController:
             "remove_later": sandbox_gen.generate_remove_command(element, carrier),
         }
 
-        if selected_idx == 0:
-            self._show_and_copy_command(stdscr, commands["insert_now"])
-        elif selected_idx == 1:
-            self._show_all_commands(stdscr, commands)
-
-    def _show_and_copy_command(self, stdscr, command: str) -> None:
-        """Show single command and auto-copy it to clipboard."""
-        if not command:
-            return
-
-        copied = copy_to_clipboard(command)
-        if copied:
-            msg = f"Command copied to clipboard:\n\n{command}\n\nPaste and run in sandbox shell."
-            display_dialog(stdscr, msg, "Command Ready", "info")
-        else:
-            msg = f"Clipboard copy failed. Command:\n\n{command}\n\nCopy manually."
-            display_dialog(stdscr, msg, "Manual Copy Required", "warning")
+        # Always show all commands
+        self._show_all_commands(stdscr, commands)
 
     def _show_all_commands(self, stdscr, commands: Dict) -> None:
         """Show all commands with usage instructions (no auto-copy)."""

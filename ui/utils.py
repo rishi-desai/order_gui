@@ -125,12 +125,12 @@ def show_status(stdscr, message: str, status_type: str = "info") -> None:
     color = color_map.get(status_type, Colors.INFO)
 
     icon_map = {
-        "info": Symbols.BULLET,
-        "success": Symbols.CHECK,
-        "error": Symbols.CROSS,
-        "warning": Symbols.WARNING,
+        "info": "i",
+        "success": "✓",
+        "error": "✗",
+        "warning": "!",
     }
-    icon = icon_map.get(status_type, Symbols.BULLET)
+    icon = icon_map.get(status_type, "?")
 
     status_text = f" {icon} {message}"
     if len(status_text) > width:

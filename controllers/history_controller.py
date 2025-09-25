@@ -2,6 +2,7 @@
 History controller for viewing and managing order history.
 """
 
+import time
 from typing import Dict, Any
 
 from models.config import Config
@@ -11,8 +12,9 @@ from ui.menu import display_menu
 from ui.dialog import display_dialog
 from ui.utils import (
     get_screen_size,
+    show_status,
 )
-from config.constants import Symbols, ServerType
+from config.constants import ServerType, Symbols
 from .sandbox_controller import SandboxController
 
 
@@ -38,12 +40,13 @@ class HistoryController:
             osr_orders = History.get_orders_for_osr(current_osrid)
 
             if not osr_orders:
-                display_dialog(
+                show_status(
                     stdscr,
                     f"No order history found for OSR {current_osrid}.",
-                    "Information",
                     "info",
                 )
+                stdscr.refresh()
+                time.sleep(2)  # Show status for 2 seconds
                 return
 
             # Prepare display options
@@ -56,42 +59,25 @@ class HistoryController:
                 display_text = f"{order_id} - {status.upper()} - {created}"
                 options.append(display_text)
 
-            # Add navigation options
-            options.extend(
-                [
-                    "",
-                    f"{Symbols.BACK} Back to Main Menu",
-                    f"{Symbols.REFRESH} Refresh History",
-                ]
-            )
-
-            # Show the menu
+            # Show the menu - let menu.py handle all key processing
             try:
                 selected_idx = display_menu(
                     stdscr,
                     options=options,
                     title=f"Order History for OSR {current_osrid} ({len(osr_orders)} orders)",
-                    instructions="Press Enter to select, 'r' to refresh, 'b' to go back, Esc to exit",
+                    instructions="[Enter] View Details • [B] Back to Main • [R] Refresh • [Q] Quit",
                 )
             except KeyboardInterrupt:
                 break
 
-            if selected_idx == -1:  # Escape pressed
-                break
-            elif selected_idx == -2:  # Special code for 'r' key (refresh)
+            # Only handle actual business logic based on menu return codes
+            if selected_idx is None:
+                break  # User quit with 'q'
+            elif selected_idx == -2:  # Menu detected 'r' - refresh data
                 continue  # Refresh by reloading the loop
-            elif selected_idx == -3:  # Special code for 'b' key (back)
+            elif selected_idx == -3:  # Menu detected 'b' - go back
                 break  # Go back to main menu
-
-            # Handle selection
-            if selected_idx >= len(osr_orders):
-                # Navigation options
-                nav_option = selected_idx - len(osr_orders)
-                if nav_option == 1:  # Back to Main Menu
-                    break
-                elif nav_option == 2:  # Refresh History
-                    continue
-            else:
+            elif selected_idx >= 0 and selected_idx < len(osr_orders):
                 # Show detailed order information
                 order = osr_orders[selected_idx]
                 self._show_order_details(stdscr, order, config)
@@ -106,14 +92,14 @@ class HistoryController:
         updated = order.get("updated", "")
 
         status_symbol = {
-            "sent": f"{Symbols.TIME} SENT",
-            "cancelled": f"{Symbols.ERROR} CANCELLED",
-            "cancelled_dry_run": f"{Symbols.WARNING} CANCELLED (DRY RUN)",
-            "completed": f"{Symbols.SUCCESS} COMPLETED",
-            "failed": f"{Symbols.ERROR} FAILED",
-            "processing": f"{Symbols.TIME} PROCESSING",
-            "pending": f"{Symbols.TIME} PENDING",
-        }.get(status, f"{Symbols.INFO} {status.upper()}")
+            "sent": "SENT",
+            "cancelled": "CANCELLED",
+            "cancelled_dry_run": "CANCELLED (DRY RUN)",
+            "completed": "COMPLETED",
+            "failed": "FAILED",
+            "processing": "PROCESSING",
+            "pending": "PENDING",
+        }.get(status, status.upper())
 
         # Prepare the order details display
         details_lines = [
@@ -134,22 +120,15 @@ class HistoryController:
             [
                 "",
                 "Available Actions:",
-                f"1. {Symbols.ARROW_RIGHT} Resend Same Order",
-                f"2. {Symbols.EDIT} Edit and Resend Order",
+                "1. Resend Same Order",
+                "2. Edit and Resend Order",
             ]
         )
 
         # Add sandbox commands for test servers
         server_type = config.get("server_type", ServerType.LIVE)
         if server_type == ServerType.TEST:
-            details_lines.extend(
-                [
-                    f"3. {Symbols.SETTINGS} Generate Sandbox Commands",
-                    f"4. {Symbols.BACK} Back to History",
-                ]
-            )
-        else:
-            details_lines.append(f"3. {Symbols.BACK} Back to History")
+            details_lines.append("3. Generate Sandbox Commands")
 
         # Show interactive menu
         action_options = []
@@ -172,8 +151,7 @@ class HistoryController:
                 stdscr,
                 options=action_options,
                 title=f"Order Details: {order_id}",
-                instructions="Select an action • Information shown above",
-                allow_empty_selection=False,
+                instructions="[0-9] Select Action • [Q] Back to History",
             )
         except KeyboardInterrupt:
             return
@@ -226,7 +204,9 @@ class HistoryController:
                 return
 
             if not orders:
-                display_dialog(stdscr, "No active orders found.", "Information", "info")
+                show_status(stdscr, "No active orders found.", "info")
+                stdscr.refresh()
+                time.sleep(2)  # Show status for 2 seconds
                 return
 
             # Prepare menu options
@@ -241,8 +221,8 @@ class HistoryController:
             selected_indices = display_menu(
                 stdscr,
                 options=order_options,
-                title=f"{Symbols.WARNING} Cancel Orders - Select orders to cancel",
-                instructions=f"{Symbols.KEY} Use SPACE to select multiple • ENTER to cancel selected • 'q' to return",
+                title="Cancel Orders - Select orders to cancel",
+                instructions="[Space] Select Multiple • [Enter] Cancel Selected • [Q] Back",
                 allow_multiple=True,
             )
 
@@ -255,23 +235,25 @@ class HistoryController:
 
     def _confirm_and_cancel_orders(self, stdscr, orders, selected_indices) -> None:
         """Confirm and cancel selected orders."""
+        from ui.dialog import display_dialog
+
         selected_orders = [orders[i] for i in selected_indices]
 
-        # Get confirmation (simplified)
-        confirm_msg = f"Cancel {len(selected_orders)} orders? This cannot be undone!"
+        # Get confirmation using consistent dialog
+        confirm_msg = (
+            f"Cancel {len(selected_orders)} orders?\n\nThis action cannot be undone!"
+        )
 
-        # Simple confirmation dialog
-        height, width = get_screen_size(stdscr)
-        stdscr.clear()
+        # Use the consistent yes/no dialog
+        confirmed = display_dialog(
+            stdscr,
+            confirm_msg,
+            "Confirm Order Cancellation",
+            "question",
+            show_yes_no=True,
+        )
 
-        y = height // 2
-        x = (width - len(confirm_msg)) // 2
-        stdscr.addstr(y, x, confirm_msg)
-        stdscr.addstr(y + 2, x, "Press Y to confirm, N to cancel")
-        stdscr.refresh()
-
-        key = stdscr.getch()
-        if key not in (ord("y"), ord("Y")):
+        if not confirmed:
             return
 
         # Cancel the orders
@@ -291,12 +273,13 @@ class HistoryController:
 
         # Show results
         if success_count == len(selected_orders):
-            display_dialog(
+            show_status(
                 stdscr,
                 f"Successfully cancelled {success_count} orders!",
-                "Success",
                 "success",
             )
+            stdscr.refresh()
+            time.sleep(2)  # Show status for 2 seconds
         elif success_count > 0:
             msg = f"Cancelled {success_count} orders. Failed:\n" + "\n".join(
                 failed_orders

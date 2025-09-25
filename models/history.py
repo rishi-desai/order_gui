@@ -85,3 +85,19 @@ class History:
         """Get all orders for a specific OSR ID."""
         orders = History.load()
         return [order for order in orders if order.get("osrid") == osrid]
+
+    @staticmethod
+    def get_last_order() -> Dict[str, str]:
+        """Get the most recent order from history."""
+        orders = History.load()
+        if orders:
+            last_order = orders[0]  # Most recent first
+            return {
+                "order_id": last_order.get("order_id"),
+                "order_type": last_order.get("type"),
+                "osrid": last_order.get("osrid"),
+                "status": last_order.get("status"),
+                "created": last_order.get("created"),
+                "updated": last_order.get("updated"),
+            }
+        return {}

@@ -115,11 +115,15 @@ class SandboxCommandGenerator:
             Carrier identifier if found, None otherwise
         """
         # Look for container/tray/carrier references in XML
-        # Prioritize most specific patterns first
+        # Prioritize most specific patterns first - focus on container_number, compartment_number
         patterns = [
+            r'container_number="([^"]+)"',  # container_number attribute (pick, transport)
+            r'compartment_number="([^"]+)"',  # compartment_number attribute (goods_in)
             r'container_id="([^"]+)"',  # Direct container_id attribute
             r'tray_id="([^"]+)"',  # Direct tray_id attribute
             r'carrier_id="([^"]+)"',  # Direct carrier_id attribute
+            r'<container[^>]*number="([^"]+)"',  # Container with number attribute
+            r'<tray[^>]*number="([^"]+)"',  # Tray with number attribute
             r'<container[^>]*id="([^"]+)"',  # Container with id attribute
             r'<tray[^>]*id="([^"]+)"',  # Tray with id attribute
             r'<carrier[^>]*id="([^"]+)"',  # Carrier with id attribute
@@ -178,37 +182,3 @@ class SandboxCommandGenerator:
         commands["remove_later"] = self.generate_remove_command(element, carrier)
 
         return commands
-
-
-def copy_to_clipboard(text):
-    """
-    Copy text to clipboard on Linux server.
-    Returns True on success, False otherwise.
-    """
-    try:
-        # Try xclip first (most common)
-        if os.system("which xclip > /dev/null 2>&1") == 0:
-            proc = subprocess.Popen(
-                ["xclip", "-selection", "clipboard"], stdin=subprocess.PIPE
-            )
-            proc.communicate(input=text.encode("utf-8"))
-            return proc.returncode == 0
-
-        # Try xsel as fallback
-        if os.system("which xsel > /dev/null 2>&1") == 0:
-            proc = subprocess.Popen(
-                ["xsel", "--clipboard", "--input"], stdin=subprocess.PIPE
-            )
-            proc.communicate(input=text.encode("utf-8"))
-            return proc.returncode == 0
-
-        # Try wl-copy for Wayland
-        if os.system("which wl-copy > /dev/null 2>&1") == 0:
-            proc = subprocess.Popen(["wl-copy"], stdin=subprocess.PIPE)
-            proc.communicate(input=text.encode("utf-8"))
-            return proc.returncode == 0
-
-        return False
-
-    except Exception:
-        return False
