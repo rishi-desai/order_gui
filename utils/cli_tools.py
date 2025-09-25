@@ -1,7 +1,7 @@
 """
 CLI Tools and Utilities
 
-Command-line operations including import testing, file cleanup, 
+Command-line operations including import testing, file cleanup,
 system diagnostics, and build operations.
 """
 
@@ -173,7 +173,9 @@ def clean_files():
                     print(f"⚠️  Failed to remove {dir_path}: {e}")
 
     if removed_files or removed_folders:
-        print(f"✅ Cleaned {len(removed_files)} files and {len(removed_folders)} directories")
+        print(
+            f"✅ Cleaned {len(removed_files)} files and {len(removed_folders)} directories"
+        )
         return True
     else:
         print("✅ No temporary files found to clean")
